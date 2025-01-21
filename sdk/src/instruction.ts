@@ -1,5 +1,6 @@
-import { PublicKey } from '@solana/web3.js';
+import { Message, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, TransactionInstruction } from '@solana/web3.js';
 import { Schema } from 'borsh';
+import * as borsh from 'borsh';
 
 // Instruction enum for serialization
 enum SwapInstructionKind {
@@ -89,4 +90,49 @@ export class SwapOrder {
       state: 'u8',
     },
   } as Schema;
+}
+
+export class InitializeOrderInstruction {
+  static async create(
+    programId: PublicKey,
+    maker: PublicKey,
+    makerTokenMint: PublicKey, 
+    takerTokenMint: PublicKey,
+    makerAmount: bigint,
+    takerAmount: bigint,
+    // Include blockhash if needed for versioned tx
+    blockhash?: string
+  ): Promise<TransactionInstruction | Message> {
+    const [orderPda] = await PublicKey.findProgramAddress(
+      [
+        Buffer.from('order'),
+        maker.toBuffer(),
+        makerTokenMint.toBuffer(),
+        takerTokenMint.toBuffer(),
+      ],
+      programId
+    );
+
+    const args = new InitializeOrderArgs({
+      makerAmount,
+      takerAmount,
+    });
+
+    const instructionData = Buffer.from(
+      borsh.serialize(InitializeOrderArgs.borshInstructionSchema, args),
+    );
+
+    return new TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: maker, isSigner: true, isWritable: true },
+        { pubkey: orderPda, isSigner: false, isWritable: true },
+        { pubkey: makerTokenMint, isSigner: false, isWritable: false },
+        { pubkey: takerTokenMint, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+      ],
+      data: instructionData,
+    });
+  }
 }

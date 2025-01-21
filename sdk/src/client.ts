@@ -92,8 +92,6 @@ export class P2PSwapSDK {
       this.programId,
     ];
 
-    console.log(this.programId.toBase58());
-
     const accountKeyIndexes = instruction.keys.map((key) =>
       accountKeys.findIndex((ak) => ak.equals(key.pubkey)),
     );
