@@ -1,6 +1,6 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey } from '@solana/web3.js';
 
-export const PROGRAM_ID = new PublicKey('L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95');
+export const PROGRAM_ID = new PublicKey('EJ92bMVgrbnfDL9T3AivuoyyjuCWZt74qG6QQuTjbCXW');
 
 import { Connection, clusterApiUrl, Commitment } from '@solana/web3.js';
 
@@ -17,7 +17,7 @@ export const DEFAULT_COMMITMENT: Commitment = 'confirmed';
 
 export function createConnection(
   endpoint: EndpointTypes = 'localnet',
-  commitment: Commitment = DEFAULT_COMMITMENT
+  commitment: Commitment = DEFAULT_COMMITMENT,
 ): Connection {
   return new Connection(ENDPOINTS[endpoint], {
     commitment,

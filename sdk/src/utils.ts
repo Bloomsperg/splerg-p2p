@@ -12,7 +12,7 @@ export function loadKeypairFromFile(filepath: string = DEFAULT_KEYPAIR_PATH): Ke
     return Keypair.fromSecretKey(keypairData);
   } catch (error) {
     throw new Error(
-      `Failed to load keypair from ${filepath}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to load keypair from ${filepath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
   }
 }
