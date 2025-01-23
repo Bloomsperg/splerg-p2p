@@ -1,10 +1,10 @@
 [package]
-name = "spl-p2p"
+name = "splerg-p2p"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "spl_p2p"
+name = "splerg_p2p"
 crate-type = ["cdylib", "lib"]
 
 [features]

@@ -6,6 +6,7 @@ pub enum SwapInstruction {
     /// Accounts:
     /// * [signer] Maker (order creator, pays rent)
     /// * [writable] Order PDA account (to be created)
+    /// * [] Taker (order counterparty)
     /// * [] Maker token mint
     /// * [] Taker token mint
     /// * [] System program
@@ -14,23 +15,6 @@ pub enum SwapInstruction {
         maker_amount: u64,
         taker_amount: u64,
     },
-
-    /// Deposit maker's tokens into escrow
-    /// Accounts:
-    /// * [signer] Maker
-    /// * [writable] Order PDA account
-    /// * [writable] Maker's token account (source)
-    /// * [writable] Program's escrow token account
-    /// * [] Token program
-    /// * [] Token Authority PDA
-    DepositMakerTokens,
-
-    /// Assign taker to swap order
-    /// Accounts:
-    /// * [signer] Taker
-    /// * [writable] Order PDA account
-    /// * [writable] Taker's token account
-    AssignTaker,
 
     /// Complete swap
     /// Accounts:

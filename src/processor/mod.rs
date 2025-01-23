@@ -32,8 +32,6 @@ impl Processor {
                 maker_amount,
                 taker_amount,
             } => Self::process_initialize_order(program_id, accounts, maker_amount, taker_amount),
-            SwapInstruction::DepositMakerTokens => todo!(),
-            SwapInstruction::AssignTaker => todo!(),
             SwapInstruction::CompleteSwap => todo!(),
             SwapInstruction::CloseOrder => todo!(),
         }
@@ -48,6 +46,7 @@ impl Processor {
         let account_info_iter = &mut accounts.iter();
         let maker_info = next_account_info(account_info_iter)?;
         let order_account_info = next_account_info(account_info_iter)?;
+        let taker_info = next_account_info(account_info_iter)?;
         let maker_token_mint_info = next_account_info(account_info_iter)?;
         let taker_token_mint_info = next_account_info(account_info_iter)?;
         let system_program_info = next_account_info(account_info_iter)?;
@@ -123,10 +122,12 @@ impl Processor {
 
         let order = SwapOrder::new(
             *maker_info.key,
+            *taker_info.key,
             *maker_token_mint_info.key,
             *taker_token_mint_info.key,
             maker_amount,
             taker_amount,
+            bump_seed
         );
 
         order.serialize(&mut *order_account_info.data.borrow_mut())?;
