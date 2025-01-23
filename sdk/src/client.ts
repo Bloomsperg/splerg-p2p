@@ -154,28 +154,22 @@ export class P2PSwapSDK {
       }
 
       const rawOrder = borsh.deserialize(SwapOrder.borshAccountSchema, accountInfo.data) as {
-        is_initialized: number;
         maker: Uint8Array;
-        taker: Uint8Array | null;
+        taker: Uint8Array;
         maker_token_mint: Uint8Array;
         taker_token_mint: Uint8Array;
         maker_amount: bigint;
         taker_amount: bigint;
-        maker_token_account: Uint8Array;
-        taker_token_account: Uint8Array | null;
         state: number;
       };
 
       return new SwapOrder({
-        is_initialized: !!rawOrder.is_initialized,
         maker: rawOrder.maker,
         taker: rawOrder.taker,
         maker_token_mint: rawOrder.maker_token_mint,
         taker_token_mint: rawOrder.taker_token_mint,
         maker_amount: rawOrder.maker_amount,
         taker_amount: rawOrder.taker_amount,
-        maker_token_account: rawOrder.maker_token_account,
-        taker_token_account: rawOrder.taker_token_account,
         state: rawOrder.state,
       });
     } catch (error) {

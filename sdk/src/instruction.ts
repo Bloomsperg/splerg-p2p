@@ -1,4 +1,10 @@
-import { Message, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, TransactionInstruction } from '@solana/web3.js';
+import {
+  Message,
+  PublicKey,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import { Schema } from 'borsh';
 import * as borsh from 'borsh';
 
@@ -39,54 +45,40 @@ enum OrderState {
 }
 
 export class SwapOrder {
-  is_initialized: boolean;
   maker: PublicKey;
-  taker: PublicKey | null;
+  taker: PublicKey;
   maker_token_mint: PublicKey;
   taker_token_mint: PublicKey;
   maker_amount: bigint;
   taker_amount: bigint;
-  maker_token_account: PublicKey;
-  taker_token_account: PublicKey | null;
   state: OrderState;
 
   constructor(fields: {
-    is_initialized: boolean;
     maker: Uint8Array;
-    taker: Uint8Array | null;
+    taker: Uint8Array;
     maker_token_mint: Uint8Array;
     taker_token_mint: Uint8Array;
     maker_amount: bigint;
     taker_amount: bigint;
-    maker_token_account: Uint8Array;
-    taker_token_account: Uint8Array | null;
     state: number;
   }) {
-    this.is_initialized = fields.is_initialized;
     this.maker = new PublicKey(fields.maker);
-    this.taker = fields.taker ? new PublicKey(fields.taker) : null;
+    this.taker = new PublicKey(fields.taker);
     this.maker_token_mint = new PublicKey(fields.maker_token_mint);
     this.taker_token_mint = new PublicKey(fields.taker_token_mint);
     this.maker_amount = fields.maker_amount;
     this.taker_amount = fields.taker_amount;
-    this.maker_token_account = new PublicKey(fields.maker_token_account);
-    this.taker_token_account = fields.taker_token_account
-      ? new PublicKey(fields.taker_token_account)
-      : null;
     this.state = fields.state as OrderState;
   }
 
   static borshAccountSchema = {
     struct: {
-      is_initialized: 'u8',
       maker: { array: { type: 'u8', len: 32 } },
-      taker: { option: { array: { type: 'u8', len: 32 } } },
+      taker: { array: { type: 'u8', len: 32 } },
       maker_token_mint: { array: { type: 'u8', len: 32 } },
       taker_token_mint: { array: { type: 'u8', len: 32 } },
       maker_amount: 'u64',
       taker_amount: 'u64',
-      maker_token_account: { array: { type: 'u8', len: 32 } },
-      taker_token_account: { option: { array: { type: 'u8', len: 32 } } },
       state: 'u8',
     },
   } as Schema;
@@ -96,12 +88,12 @@ export class InitializeOrderInstruction {
   static async create(
     programId: PublicKey,
     maker: PublicKey,
-    makerTokenMint: PublicKey, 
+    makerTokenMint: PublicKey,
     takerTokenMint: PublicKey,
     makerAmount: bigint,
     takerAmount: bigint,
     // Include blockhash if needed for versioned tx
-    blockhash?: string
+    blockhash?: string,
   ): Promise<TransactionInstruction | Message> {
     const [orderPda] = await PublicKey.findProgramAddress(
       [
@@ -110,7 +102,7 @@ export class InitializeOrderInstruction {
         makerTokenMint.toBuffer(),
         takerTokenMint.toBuffer(),
       ],
-      programId
+      programId,
     );
 
     const args = new InitializeOrderArgs({

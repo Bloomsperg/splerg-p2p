@@ -8,6 +8,8 @@ pub enum SwapError {
     MakerTokensNotDeposited,
     UnauthorizedSigner,
     InvalidOrderState,
+    InvalidMint,
+    InvalidAmount,
 }
 
 impl From<SwapError> for ProgramError {

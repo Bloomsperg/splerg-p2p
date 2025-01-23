@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 
-export const PROGRAM_ID = new PublicKey('EJ92bMVgrbnfDL9T3AivuoyyjuCWZt74qG6QQuTjbCXW');
+export const PROGRAM_ID = new PublicKey('99kEphRNAS1E77nF2Wai9pXGBxgRX4BuNtMTKtY9Mg21');
 
 import { Connection, clusterApiUrl, Commitment } from '@solana/web3.js';
 

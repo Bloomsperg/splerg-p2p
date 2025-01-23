@@ -12,7 +12,10 @@ use {
     },
 };
 
-use crate::{error::SwapError, instruction::SwapInstruction, state::SwapOrder};
+use crate::{
+    error::SwapError, instruction::SwapInstruction, state::SwapOrder,
+    validation::is_valid_token_mint,
+};
 
 pub struct Processor;
 
@@ -50,12 +53,34 @@ impl Processor {
         let system_program_info = next_account_info(account_info_iter)?;
         let rent_info = next_account_info(account_info_iter)?;
 
-        // Verify maker is signer
         if !maker_info.is_signer {
             return Err(SwapError::UnauthorizedSigner.into());
         }
 
-        // Create order PDA
+        if maker_amount == 0 {
+            return Err(SwapError::InvalidAmount.into());
+        }
+
+        if taker_amount == 0 {
+            return Err(SwapError::InvalidAmount.into());
+        }
+
+        if !is_valid_token_mint(maker_token_mint_info)? {
+            return Err(SwapError::InvalidMint.into());
+        }
+
+        if !is_valid_token_mint(taker_token_mint_info)? {
+            return Err(SwapError::InvalidMint.into());
+        }
+
+        if *system_program_info.key != solana_program::system_program::id() {
+            return Err(ProgramError::IncorrectProgramId);
+        }
+
+        if *rent_info.key != solana_program::sysvar::rent::id() {
+            return Err(ProgramError::InvalidArgument);
+        }
+
         let (order_pda, bump_seed) = Pubkey::find_program_address(
             &[
                 b"order",
@@ -66,12 +91,10 @@ impl Processor {
             program_id,
         );
 
-        // Verify PDA matches passed account
         if order_pda != *order_account_info.key {
             return Err(ProgramError::InvalidSeeds);
         }
 
-        // Create account with the right space and rent
         let rent = Rent::from_account_info(rent_info)?;
         let space = SwapOrder::LEN;
         let rent_lamports = rent.minimum_balance(space);
@@ -98,14 +121,12 @@ impl Processor {
             ]],
         )?;
 
-        // Initialize order data
         let order = SwapOrder::new(
             *maker_info.key,
             *maker_token_mint_info.key,
             *taker_token_mint_info.key,
             maker_amount,
             taker_amount,
-            *maker_token_mint_info.key, // This will be updated in deposit
         );
 
         order.serialize(&mut *order_account_info.data.borrow_mut())?;

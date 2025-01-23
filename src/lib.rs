@@ -5,6 +5,7 @@ pub mod error;
 pub mod instruction;
 pub mod processor;
 pub mod state;
+pub mod validation;
 
 declare_id!("L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95");
 pub mod spl_p2p {
