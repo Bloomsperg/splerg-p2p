@@ -10,6 +10,8 @@ pub enum SwapError {
     InvalidOrderState,
     InvalidMint,
     InvalidAmount,
+    InvalidTokenProgram,
+    InvalidTokenAccount,
 }
 
 impl From<SwapError> for ProgramError {

@@ -1,5 +1,4 @@
 #![allow(unexpected_cfgs)]
-use solana_program::declare_id;
 
 pub mod error;
 pub mod instruction;
@@ -7,13 +6,15 @@ pub mod processor;
 pub mod state;
 pub mod validation;
 
-declare_id!("L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95");
-pub mod spl_p2p {
+pub mod splerg_p2p {
     use crate::processor::Processor;
 
     use solana_program::{
-        account_info::AccountInfo, entrypoint, entrypoint::ProgramResult, pubkey::Pubkey,
+        account_info::AccountInfo, declare_id, entrypoint, entrypoint::ProgramResult,
+        pubkey::Pubkey,
     };
+
+    declare_id!("GKTd9AGFpPGNKK28ncHeGGuT7rBJLzPxNjCUPKn8Yik8");
 
     #[cfg(not(feature = "no-entrypoint"))]
     entrypoint!(process_instruction);

@@ -1,10 +1,13 @@
+use spl_token_2022::check_spl_token_program_account;
+
 use {
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
-        program::invoke_signed,
+        program::{invoke, invoke_signed},
         program_error::ProgramError,
+        program_pack::Pack,
         pubkey::Pubkey,
         system_instruction,
         sysvar::rent::Rent,
@@ -13,8 +16,10 @@ use {
 };
 
 use crate::{
-    error::SwapError, instruction::SwapInstruction, state::SwapOrder,
-    validation::is_valid_token_mint,
+    error::SwapError,
+    instruction::SwapInstruction,
+    state::SwapOrder,
+    validation::{is_token_program_valid_for_mint, is_valid_token_account, is_valid_token_mint},
 };
 
 pub struct Processor;
@@ -46,30 +51,43 @@ impl Processor {
         let account_info_iter = &mut accounts.iter();
         let maker_info = next_account_info(account_info_iter)?;
         let order_account_info = next_account_info(account_info_iter)?;
+        let maker_mint_ata_info = next_account_info(account_info_iter)?;
+        let order_maker_mint_ata_info = next_account_info(account_info_iter)?;
         let taker_info = next_account_info(account_info_iter)?;
         let maker_token_mint_info = next_account_info(account_info_iter)?;
         let taker_token_mint_info = next_account_info(account_info_iter)?;
         let system_program_info = next_account_info(account_info_iter)?;
         let rent_info = next_account_info(account_info_iter)?;
+        let token_program = next_account_info(account_info_iter)?;
+
+        /* Validation */
 
         if !maker_info.is_signer {
             return Err(SwapError::UnauthorizedSigner.into());
         }
 
-        if maker_amount == 0 {
+        if maker_amount == 0 || taker_amount == 0 {
             return Err(SwapError::InvalidAmount.into());
         }
 
-        if taker_amount == 0 {
-            return Err(SwapError::InvalidAmount.into());
-        }
-
-        if !is_valid_token_mint(maker_token_mint_info)? {
+        if !is_valid_token_mint(maker_token_mint_info)?
+            || !is_valid_token_mint(taker_token_mint_info)?
+        {
             return Err(SwapError::InvalidMint.into());
         }
 
-        if !is_valid_token_mint(taker_token_mint_info)? {
-            return Err(SwapError::InvalidMint.into());
+        check_spl_token_program_account(token_program.key)?;
+
+        if !is_token_program_valid_for_mint(maker_token_mint_info, token_program.key)? {
+            return Err(SwapError::InvalidTokenProgram.into());
+        }
+
+        if !is_valid_token_account(
+            maker_mint_ata_info,
+            maker_info.key,
+            maker_token_mint_info.key,
+        )? {
+            return Err(SwapError::InvalidTokenAccount.into());
         }
 
         if *system_program_info.key != solana_program::system_program::id() {
@@ -92,6 +110,14 @@ impl Processor {
 
         if order_pda != *order_account_info.key {
             return Err(ProgramError::InvalidSeeds);
+        }
+
+        if !is_valid_token_account(
+            order_maker_mint_ata_info,
+            &order_pda,
+            maker_token_mint_info.key,
+        )? {
+            return Err(SwapError::InvalidTokenAccount.into());
         }
 
         let rent = Rent::from_account_info(rent_info)?;
@@ -118,6 +144,40 @@ impl Processor {
                 taker_token_mint_info.key.as_ref(),
                 &[bump_seed],
             ]],
+        )?;
+
+        let transfer_instruction = if *token_program.key == spl_token::id() {
+            spl_token::instruction::transfer(
+                token_program.key,
+                maker_mint_ata_info.key,
+                order_maker_mint_ata_info.key,
+                maker_info.key,
+                &[],
+                maker_amount,
+            )?
+        } else {
+            let account_data =
+                spl_token_2022::state::Mint::unpack(&maker_token_mint_info.data.borrow())?;
+            spl_token_2022::instruction::transfer_checked(
+                token_program.key,
+                maker_mint_ata_info.key,
+                maker_token_mint_info.key,
+                order_maker_mint_ata_info.key,
+                maker_info.key,
+                &[],
+                maker_amount,
+                account_data.decimals,
+            )?
+        };
+
+        invoke(
+            &transfer_instruction,
+            &[
+                maker_mint_ata_info.clone(),
+                order_maker_mint_ata_info.clone(),
+                maker_info.clone(),
+                token_program.clone(),
+            ],
         )?;
 
         let order = SwapOrder::new(

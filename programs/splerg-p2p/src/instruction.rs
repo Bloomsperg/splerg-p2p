@@ -6,11 +6,14 @@ pub enum SwapInstruction {
     /// Accounts:
     /// * [signer] Maker (order creator, pays rent)
     /// * [writable] Order PDA account (to be created)
+    /// * [writable] Maker mint ATA (initialized)
+    /// * [writable] PDA ATA (initialized)
     /// * [] Taker (order counterparty)
     /// * [] Maker token mint
     /// * [] Taker token mint
     /// * [] System program
     /// * [] Rent sysvar
+    /// * [] Token Program (optional Token 2022)
     InitializeOrder {
         maker_amount: u64,
         taker_amount: u64,

@@ -14,7 +14,7 @@ pub struct SwapOrder {
 
 impl SwapOrder {
     pub const LEN: usize = 32 + // maker
-        33 + // taker
+        32 + // taker
         32 + // maker_token_mint
         32 + // taker_token_mint
         8 + // maker_amount
