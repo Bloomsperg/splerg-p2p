@@ -19,6 +19,25 @@ pub enum SwapInstruction {
         taker_amount: u64,
     },
 
+    /// Change order amounts
+    /// Accounts:
+    /// * [signer] Maker
+    /// * [writable] Order PDA account
+    /// * [writable] Program's escrow token account
+    /// * [writable] Maker's token account
+    /// * [] Token program
+    ChangeOrderAmounts {
+        new_maker_amount: u64,
+        new_taker_amount: u64,
+    },
+
+    /// Change order taker
+    /// Accounts:
+    /// * [signer] Maker
+    /// * [writable] Order PDA account
+    /// * [] New taker pubkey
+    ChangeTaker { new_taker: [u8; 32] },
+
     /// Complete swap
     /// Accounts:
     /// * [signer] Taker

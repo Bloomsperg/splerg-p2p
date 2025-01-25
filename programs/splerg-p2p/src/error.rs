@@ -12,6 +12,7 @@ pub enum SwapError {
     InvalidAmount,
     InvalidTokenProgram,
     InvalidTokenAccount,
+    InsufficientFunds,
 }
 
 impl From<SwapError> for ProgramError {

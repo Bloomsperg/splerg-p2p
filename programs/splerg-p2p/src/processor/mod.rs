@@ -37,8 +37,15 @@ impl Processor {
                 maker_amount,
                 taker_amount,
             } => Self::process_initialize_order(program_id, accounts, maker_amount, taker_amount),
-            SwapInstruction::CompleteSwap => todo!(),
-            SwapInstruction::CloseOrder => todo!(),
+            SwapInstruction::ChangeOrderAmounts {
+                new_maker_amount,
+                new_taker_amount,
+            } => Self::process_change_order_amounts(accounts, new_maker_amount, new_taker_amount),
+            SwapInstruction::ChangeTaker { new_taker } => {
+                Self::process_change_taker(accounts, new_taker)
+            }
+            SwapInstruction::CompleteSwap => Self::process_complete_swap(accounts),
+            SwapInstruction::CloseOrder => Self::process_close_order(accounts),
         }
     }
 
@@ -191,6 +198,276 @@ impl Processor {
         );
 
         order.serialize(&mut *order_account_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    fn process_change_order_amounts(
+        accounts: &[AccountInfo],
+        new_maker_amount: u64,
+        new_taker_amount: u64,
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let maker_info = next_account_info(account_info_iter)?;
+        let order_account_info = next_account_info(account_info_iter)?;
+        let escrow_token_account = next_account_info(account_info_iter)?;
+        let maker_token_account = next_account_info(account_info_iter)?;
+        let token_program = next_account_info(account_info_iter)?;
+
+        if !maker_info.is_signer {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        let mut order = SwapOrder::try_from_slice(&order_account_info.data.borrow())?;
+        if order.maker != *maker_info.key {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        if new_maker_amount == 0 || new_taker_amount == 0 {
+            return Err(SwapError::InvalidAmount.into());
+        }
+
+        // Get current escrow balance
+        let escrow_token_data =
+            spl_token::state::Account::unpack(&escrow_token_account.data.borrow())?;
+        let current_escrow_amount = escrow_token_data.amount;
+
+        match new_maker_amount.cmp(&current_escrow_amount) {
+            std::cmp::Ordering::Greater => {
+                // Need to transfer additional tokens to escrow
+                let additional_amount = new_maker_amount - current_escrow_amount;
+
+                invoke(
+                    &spl_token::instruction::transfer(
+                        token_program.key,
+                        maker_token_account.key,
+                        escrow_token_account.key,
+                        maker_info.key,
+                        &[],
+                        additional_amount,
+                    )?,
+                    &[
+                        maker_token_account.clone(),
+                        escrow_token_account.clone(),
+                        maker_info.clone(),
+                        token_program.clone(),
+                    ],
+                )?;
+            }
+            std::cmp::Ordering::Less => {
+                // Need to refund tokens to maker
+                let refund_amount = current_escrow_amount - new_maker_amount;
+
+                invoke_signed(
+                    &spl_token::instruction::transfer(
+                        token_program.key,
+                        escrow_token_account.key,
+                        maker_token_account.key,
+                        order_account_info.key,
+                        &[],
+                        refund_amount,
+                    )?,
+                    &[
+                        escrow_token_account.clone(),
+                        maker_token_account.clone(),
+                        order_account_info.clone(),
+                        token_program.clone(),
+                    ],
+                    &[&[
+                        b"order",
+                        maker_info.key.as_ref(),
+                        &order.maker_token_mint.to_bytes(),
+                        &order.taker_token_mint.to_bytes(),
+                        &[order.bump],
+                    ]],
+                )?;
+            }
+            std::cmp::Ordering::Equal => {} // No token transfer needed
+        }
+
+        order.maker_amount = new_maker_amount;
+        order.taker_amount = new_taker_amount;
+        order.serialize(&mut *order_account_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    fn process_change_taker(accounts: &[AccountInfo], new_taker: [u8; 32]) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let maker_info = next_account_info(account_info_iter)?;
+        let order_account_info = next_account_info(account_info_iter)?;
+        let new_taker_info = next_account_info(account_info_iter)?;
+
+        if !maker_info.is_signer {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        let mut order = SwapOrder::try_from_slice(&order_account_info.data.borrow())?;
+        if order.maker != *maker_info.key {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        if Pubkey::new_from_array(new_taker) != *new_taker_info.key {
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        order.taker = Pubkey::new_from_array(new_taker);
+        order.serialize(&mut *order_account_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    fn process_complete_swap(accounts: &[AccountInfo]) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let taker_info = next_account_info(account_info_iter)?;
+        let order_account_info = next_account_info(account_info_iter)?;
+        let maker_taker_mint_ata = next_account_info(account_info_iter)?; // Maker's ATA for taker's token
+        let taker_sending_ata = next_account_info(account_info_iter)?; // Taker's sending account
+        let taker_maker_mint_ata = next_account_info(account_info_iter)?; // Taker's ATA for maker's token
+        let order_maker_token_ata = next_account_info(account_info_iter)?; // Order's maker token account
+        let token_program = next_account_info(account_info_iter)?;
+
+        if !taker_info.is_signer {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        let order = SwapOrder::try_from_slice(&order_account_info.data.borrow())?;
+        if order.taker != *taker_info.key {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        // Verify we have enough tokens in escrow
+        let escrow_token_data =
+            spl_token::state::Account::unpack(&order_maker_token_ata.data.borrow())?;
+        if escrow_token_data.amount < order.maker_amount {
+            return Err(SwapError::InsufficientFunds.into());
+        }
+
+        // Transfer taker tokens directly to maker's ATA
+        invoke(
+            &spl_token::instruction::transfer(
+                token_program.key,
+                taker_sending_ata.key,
+                maker_taker_mint_ata.key,
+                taker_info.key,
+                &[],
+                order.taker_amount,
+            )?,
+            &[
+                taker_sending_ata.clone(),
+                maker_taker_mint_ata.clone(),
+                taker_info.clone(),
+                token_program.clone(),
+            ],
+        )?;
+
+        // Transfer maker tokens from escrow to taker
+        invoke_signed(
+            &spl_token::instruction::transfer(
+                token_program.key,
+                order_maker_token_ata.key,
+                taker_maker_mint_ata.key,
+                order_account_info.key,
+                &[],
+                order.maker_amount,
+            )?,
+            &[
+                order_maker_token_ata.clone(),
+                taker_maker_mint_ata.clone(),
+                order_account_info.clone(),
+                token_program.clone(),
+            ],
+            &[&[
+                b"order",
+                &order.maker.to_bytes(),
+                &order.maker_token_mint.to_bytes(),
+                &order.taker_token_mint.to_bytes(),
+                &[order.bump],
+            ]],
+        )?;
+
+        Ok(())
+    }
+
+    fn process_close_order(accounts: &[AccountInfo]) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let authority_info = next_account_info(account_info_iter)?; // could be maker or taker
+        let order_account_info = next_account_info(account_info_iter)?;
+        let rent_receiver = next_account_info(account_info_iter)?;
+        let order_token_ata = next_account_info(account_info_iter)?;
+        let maker_token_ata = next_account_info(account_info_iter)?;
+        let token_program = next_account_info(account_info_iter)?;
+
+        if !authority_info.is_signer {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        let order = SwapOrder::try_from_slice(&order_account_info.data.borrow())?;
+
+        // Check if the signer is either maker or taker
+        if *authority_info.key != order.maker && *authority_info.key != order.taker {
+            return Err(SwapError::UnauthorizedSigner.into());
+        }
+
+        // Check if there are tokens to return
+        let token_data = spl_token::state::Account::unpack(&order_token_ata.data.borrow())?;
+        if token_data.amount > 0 {
+            // Return any remaining tokens to maker
+            invoke_signed(
+                &spl_token::instruction::transfer(
+                    token_program.key,
+                    order_token_ata.key,
+                    maker_token_ata.key,
+                    order_account_info.key,
+                    &[],
+                    token_data.amount,
+                )?,
+                &[
+                    order_token_ata.clone(),
+                    maker_token_ata.clone(),
+                    order_account_info.clone(),
+                    token_program.clone(),
+                ],
+                &[&[
+                    b"order",
+                    &order.maker.to_bytes(),
+                    &order.maker_token_mint.to_bytes(),
+                    &order.taker_token_mint.to_bytes(),
+                    &[order.bump],
+                ]],
+            )?;
+        }
+
+        // Close the token account
+        invoke_signed(
+            &spl_token::instruction::close_account(
+                token_program.key,
+                order_token_ata.key,
+                rent_receiver.key,
+                order_account_info.key,
+                &[],
+            )?,
+            &[
+                order_token_ata.clone(),
+                rent_receiver.clone(),
+                order_account_info.clone(),
+            ],
+            &[&[
+                b"order",
+                &order.maker.to_bytes(),
+                &order.maker_token_mint.to_bytes(),
+                &order.taker_token_mint.to_bytes(),
+                &[order.bump],
+            ]],
+        )?;
+
+        // Transfer lamports to rent receiver and zero the account
+        let rent_lamports = order_account_info.lamports();
+        **order_account_info.lamports.borrow_mut() = 0;
+        **rent_receiver.lamports.borrow_mut() += rent_lamports;
+
+        // Clear the data
+        order_account_info.data.borrow_mut().fill(0);
 
         Ok(())
     }

@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 pub fn load_program(program_name: &str) -> String {
     PathBuf::from("../../target")
