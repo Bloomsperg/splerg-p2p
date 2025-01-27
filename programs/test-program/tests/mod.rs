@@ -724,9 +724,8 @@ fn test_close_order() {
     let close_order_ix = solana_program::instruction::Instruction {
         program_id: PROGRAM_KEY,
         accounts: vec![
-            AccountMeta::new(payer.pubkey(), true),  // maker as authority
-            AccountMeta::new(order_pda, false),      // order PDA
-            AccountMeta::new(payer.pubkey(), false), // rent receiver (maker)
+            AccountMeta::new(payer.pubkey(), true), // maker as authority
+            AccountMeta::new(order_pda, false),     // order PDA
             AccountMeta::new(order_maker_token_ata, false), // order's token account
             AccountMeta::new(maker_token_ata, false), // maker's token account
             AccountMeta::new_readonly(spl_token::id(), false), // token program
