@@ -75,7 +75,12 @@ pub fn validate_authority(authority: &AccountInfo, order: &SwapOrder) -> Program
     Ok(())
 }
 
+/// Validate on if the order is open or closed
 pub fn validate_taker(taker: &AccountInfo, order: &SwapOrder) -> ProgramResult {
+    if order.taker == Pubkey::default() {
+        return Ok(());
+    }
+
     validate_signer(taker)?;
     if order.taker != *taker.key {
         return Err(SwapError::UnauthorizedSigner.into());

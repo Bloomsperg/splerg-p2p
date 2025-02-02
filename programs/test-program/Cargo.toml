@@ -11,6 +11,4 @@ spl-associated-token-account = "6.0.0"
 spl-token = "7.0.0"
 spl-token-2022 = "7.0.0"
 splerg-p2p = { path = "../splerg-p2p"}
-
-[dev-dependencies]
 litesvm = "0.5.0"

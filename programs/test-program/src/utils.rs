@@ -8,7 +8,8 @@ use solana_sdk::{
 };
 use spl_associated_token_account::get_associated_token_address;
 use splerg_p2p::state::SwapOrder;
-use test_program::{
+
+use crate::{
     mints::{mint_to_ata, setup_mint},
     PROGRAM_KEY,
 };
@@ -30,6 +31,12 @@ pub struct TestSetup {
     pub order_pda: Pubkey,
     pub maker_token_ata: Pubkey,
     pub order_maker_token_ata: Pubkey,
+}
+
+impl Default for TestSetup {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TestSetup {

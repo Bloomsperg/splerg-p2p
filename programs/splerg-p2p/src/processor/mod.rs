@@ -37,6 +37,9 @@ impl Processor {
         let instruction = SwapInstruction::try_from_slice(instruction_data)?;
 
         match instruction {
+            SwapInstruction::InitializeTreasury { authority } => { todo!() },
+            SwapInstruction::UpdateTreasuryAuthority { authority } => todo!(),
+            SwapInstruction::Harvest => { todo!() }
             SwapInstruction::InitializeOrder {
                 maker_amount,
                 taker_amount,
@@ -69,7 +72,6 @@ impl Processor {
         let order_account_info = next_account_info(account_info_iter)?;
         let maker_mint_ata_info = next_account_info(account_info_iter)?;
         let order_maker_mint_ata_info = next_account_info(account_info_iter)?;
-        let taker_info = next_account_info(account_info_iter)?;
         let maker_mint_info = next_account_info(account_info_iter)?;
         let taker_mint_info = next_account_info(account_info_iter)?;
         let system_program_info = next_account_info(account_info_iter)?;
@@ -159,7 +161,6 @@ impl Processor {
 
         let order = SwapOrder::new(
             *maker_info.key,
-            *taker_info.key,
             *maker_mint_info.key,
             *taker_mint_info.key,
             maker_amount,

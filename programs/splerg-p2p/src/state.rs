@@ -23,7 +23,6 @@ impl SwapOrder {
 
     pub fn new(
         maker: Pubkey,
-        taker: Pubkey,
         maker_token_mint: Pubkey,
         taker_token_mint: Pubkey,
         maker_amount: u64,
@@ -32,12 +31,29 @@ impl SwapOrder {
     ) -> Self {
         Self {
             maker,
-            taker,
+            taker: Pubkey::default(),
             maker_token_mint,
             taker_token_mint,
             maker_amount,
             taker_amount,
             bump,
+        }
+    }
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq)]
+pub struct Treasury {
+    pub authority: Pubkey
+}
+
+impl Treasury {
+    pub const LEN: usize = 32 + 1;
+
+    pub fn new(
+        authority: Pubkey
+    ) -> Self {
+        Self {
+            authority,
         }
     }
 }

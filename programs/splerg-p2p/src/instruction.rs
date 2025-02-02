@@ -2,13 +2,45 @@ use borsh::{BorshDeserialize, BorshSerialize};
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum SwapInstruction {
+    /// Initialize Treasury
+    /// Accounts:
+    /// * [signer] Payer
+    /// * [writable] Treasury PDA account
+    /// * [] Authority
+    /// * [] System program
+    /// * [] Rent sysvar
+    InitializeTreasury {
+        authority: [u8; 32]
+    },
+
+    /// Initialize Treasury
+    /// Accounts:
+    /// * [signer] Authority
+    /// * [writable] Treasury PDA account
+    /// * [] Authority
+    /// * [] System program
+    /// * [] Rent sysvar
+    UpdateTreasuryAuthority {
+        authority: [u8; 32]
+    },
+
+    /// Harvest Treasury
+    /// Accounts:
+    /// * [signer] Authority
+    /// * [writable] receiver_token_account
+    /// * [writable] treasury_token_account
+    /// * [] Treasury PDA account
+    /// * [] Mint
+    /// * [] System program
+    /// * [] Rent sysvar
+    Harvest,
+
     /// Initialize P2P swap order
     /// Accounts:
     /// * [signer] Maker (order creator, pays rent)
     /// * [writable] Order PDA account (to be created)
     /// * [writable] Maker mint ATA (initialized)
     /// * [writable] PDA ATA (initialized)
-    /// * [] Taker (order counterparty)
     /// * [] Maker token mint
     /// * [] Taker token mint
     /// * [] System program
