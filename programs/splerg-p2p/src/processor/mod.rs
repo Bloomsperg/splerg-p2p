@@ -18,11 +18,12 @@ use {
 use crate::{
     error::SwapError,
     instruction::SwapInstruction,
-    state::SwapOrder,
+    state::{SwapOrder, Treasury},
     validation::{
-        get_order_pda, validate_authority, validate_init_amounts, validate_order_pda,
-        validate_rent_sysvar, validate_signer, validate_system_program, validate_taker,
-        validate_token_account, validate_token_mint, validate_token_program,
+        get_order_pda, get_treasury_pda, validate_authority, validate_init_amounts,
+        validate_order_pda, validate_rent_sysvar, validate_signer, validate_system_program,
+        validate_taker, validate_token_account, validate_token_mint, validate_token_program,
+        validate_treasury_authority,
     },
 };
 
@@ -37,9 +38,15 @@ impl Processor {
         let instruction = SwapInstruction::try_from_slice(instruction_data)?;
 
         match instruction {
-            SwapInstruction::InitializeTreasury { authority } => { todo!() },
-            SwapInstruction::UpdateTreasuryAuthority { authority } => todo!(),
-            SwapInstruction::Harvest => { todo!() }
+            SwapInstruction::InitializeTreasury { authority, fee } => {
+                Self::process_initialize_treasury(program_id, accounts, authority, fee)
+            }
+            SwapInstruction::UpdateTreasuryAuthority { authority, fee } => {
+                Self::process_update_treasury_authority(program_id, accounts, authority, fee)
+            }
+            SwapInstruction::Harvest => {
+                todo!()
+            }
             SwapInstruction::InitializeOrder {
                 maker_amount,
                 taker_amount,
@@ -59,6 +66,85 @@ impl Processor {
             SwapInstruction::CompleteSwap => Self::process_complete_swap(program_id, accounts),
             SwapInstruction::CloseOrder => Self::process_close_order(program_id, accounts),
         }
+    }
+
+    fn process_initialize_treasury(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        authority: [u8; 32],
+        fee: u64,
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let payer_info = next_account_info(account_info_iter)?;
+        let treasury_account_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+        let system_program_info = next_account_info(account_info_iter)?;
+        let rent_info = next_account_info(account_info_iter)?;
+
+        validate_signer(payer_info)?;
+        validate_system_program(system_program_info.key)?;
+        validate_rent_sysvar(rent_info.key)?;
+
+        let authority_pubkey = Pubkey::new_from_array(authority);
+        if authority_pubkey != *authority_info.key {
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        let (treasury_pda, bump) = get_treasury_pda(program_id)?;
+        if treasury_pda != *treasury_account_info.key {
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        let rent = Rent::from_account_info(rent_info)?;
+        let space = Treasury::LEN;
+        let rent_lamports = rent.minimum_balance(space);
+
+        invoke_signed(
+            &system_instruction::create_account(
+                payer_info.key,
+                treasury_account_info.key,
+                rent_lamports,
+                space as u64,
+                program_id,
+            ),
+            &[
+                payer_info.clone(),
+                treasury_account_info.clone(),
+                system_program_info.clone(),
+            ],
+            &[&[b"treasury", &[bump]]],
+        )?;
+
+        let treasury = Treasury::new(authority_pubkey, fee, bump);
+        treasury.serialize(&mut *treasury_account_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    fn process_update_treasury_authority(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        new_authority: [u8; 32],
+        fee: u64,
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let authority_info = next_account_info(account_info_iter)?;
+        let treasury_account_info = next_account_info(account_info_iter)?;
+        let new_authority_info = next_account_info(account_info_iter)?;
+
+        validate_treasury_authority(treasury_account_info, authority_info)?;
+
+        let new_authority_pubkey = Pubkey::new_from_array(new_authority);
+        if new_authority_pubkey != *new_authority_info.key {
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        let mut treasury = Treasury::try_from_slice(&treasury_account_info.data.borrow())?;
+        treasury.authority = new_authority_pubkey;
+        treasury.fee = fee;
+        treasury.serialize(&mut *treasury_account_info.data.borrow_mut())?;
+
+        Ok(())
     }
 
     fn process_initialize_order(

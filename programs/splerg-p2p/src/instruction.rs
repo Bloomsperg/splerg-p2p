@@ -9,9 +9,7 @@ pub enum SwapInstruction {
     /// * [] Authority
     /// * [] System program
     /// * [] Rent sysvar
-    InitializeTreasury {
-        authority: [u8; 32]
-    },
+    InitializeTreasury { authority: [u8; 32], fee: u64 },
 
     /// Initialize Treasury
     /// Accounts:
@@ -20,9 +18,7 @@ pub enum SwapInstruction {
     /// * [] Authority
     /// * [] System program
     /// * [] Rent sysvar
-    UpdateTreasuryAuthority {
-        authority: [u8; 32]
-    },
+    UpdateTreasuryAuthority { authority: [u8; 32], fee: u64 },
 
     /// Harvest Treasury
     /// Accounts:

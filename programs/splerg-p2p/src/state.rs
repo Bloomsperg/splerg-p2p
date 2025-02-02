@@ -43,17 +43,19 @@ impl SwapOrder {
 
 #[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq)]
 pub struct Treasury {
-    pub authority: Pubkey
+    pub authority: Pubkey,
+    pub fee: u64,
+    pub bump: u8,
 }
 
 impl Treasury {
-    pub const LEN: usize = 32 + 1;
+    pub const LEN: usize = 32 + 8 + 1;
 
-    pub fn new(
-        authority: Pubkey
-    ) -> Self {
+    pub fn new(authority: Pubkey, fee: u64, bump: u8) -> Self {
         Self {
             authority,
+            fee,
+            bump,
         }
     }
 }

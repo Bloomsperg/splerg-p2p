@@ -4,7 +4,10 @@ use solana_program::{
     program_pack::Pack, pubkey::Pubkey, sysvar::rent::Rent,
 };
 
-use crate::{error::SwapError, state::SwapOrder};
+use crate::{
+    error::SwapError,
+    state::{SwapOrder, Treasury},
+};
 
 /// Validates that a mint account is a valid SPL Token or Token-2022 mint
 pub fn validate_token_mint(mint_info: &AccountInfo) -> ProgramResult {
@@ -158,4 +161,24 @@ pub fn validate_order_pda(
     }
 
     Ok((order, bump))
+}
+
+pub fn get_treasury_pda(program_id: &Pubkey) -> Result<(Pubkey, u8), ProgramError> {
+    let (pda, bump) = Pubkey::find_program_address(&[b"treasury"], program_id);
+    Ok((pda, bump))
+}
+
+/// Validate treasury PDA and authority
+pub fn validate_treasury_authority(
+    treasury_account: &AccountInfo,
+    authority: &AccountInfo,
+) -> ProgramResult {
+    let treasury = Treasury::try_from_slice(&treasury_account.data.borrow())?;
+
+    validate_signer(authority)?;
+    if treasury.authority != *authority.key {
+        return Err(SwapError::UnauthorizedSigner.into());
+    }
+
+    Ok(())
 }
