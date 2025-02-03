@@ -15,7 +15,7 @@ fn test_initialize_treasury() {
 
     // Generate new authority
     let authority = Keypair::new();
-    let fee = 100u64;
+    let fee = 100u16;
 
     // Create initialize treasury instruction
     let mut init_treasury_data = vec![0]; // variant 0 for InitializeTreasury
@@ -89,7 +89,7 @@ fn test_update_treasury_authority() {
 
     // Now update the authority
     let new_authority = Keypair::new();
-    let new_fee = 200u64;
+    let new_fee = 200u16;
 
     let mut update_treasury_data = vec![1]; // variant 1 for UpdateTreasuryAuthority
     update_treasury_data.extend_from_slice(&new_authority.pubkey().to_bytes());
