@@ -112,7 +112,7 @@ impl TestSetup {
     }
 
     pub fn initialize_order(&mut self, maker_amount: u64, taker_amount: u64) -> Transaction {
-        let mut ix_data = vec![0]; // variant 0 for InitializeOrder
+        let mut ix_data = vec![3]; // variant 0 for InitializeOrder
         ix_data.extend_from_slice(&maker_amount.to_le_bytes());
         ix_data.extend_from_slice(&taker_amount.to_le_bytes());
 

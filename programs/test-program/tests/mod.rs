@@ -1,13 +1,125 @@
 use borsh::BorshDeserialize;
 use mints::mint_to_ata;
 use solana_sdk::{
-    instruction::AccountMeta, program_pack::Pack, signature::Keypair, signer::Signer,
-    transaction::Transaction,
+    instruction::AccountMeta, program_pack::Pack, pubkey::Pubkey, signature::Keypair,
+    signer::Signer, transaction::Transaction,
 };
 use spl_associated_token_account::get_associated_token_address;
-use splerg_p2p::state::SwapOrder;
+use splerg_p2p::state::{SwapOrder, Treasury};
 use test_program::{mints, utils, PROGRAM_KEY};
 use utils::TestSetup;
+
+#[test]
+fn test_initialize_treasury() {
+    let mut setup = TestSetup::new();
+
+    // Generate new authority
+    let authority = Keypair::new();
+    let fee = 100u64;
+
+    // Create initialize treasury instruction
+    let mut init_treasury_data = vec![0]; // variant 0 for InitializeTreasury
+    init_treasury_data.extend_from_slice(&authority.pubkey().to_bytes());
+    init_treasury_data.extend_from_slice(&fee.to_le_bytes());
+
+    let (treasury_pda, _) = Pubkey::find_program_address(&[b"treasury"], &PROGRAM_KEY);
+
+    let init_treasury_ix = solana_program::instruction::Instruction {
+        program_id: PROGRAM_KEY,
+        accounts: vec![
+            AccountMeta::new(setup.payer.pubkey(), true),
+            AccountMeta::new(treasury_pda, false),
+            AccountMeta::new_readonly(authority.pubkey(), false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(solana_program::sysvar::rent::id(), false),
+        ],
+        data: init_treasury_data,
+    };
+
+    let tx = Transaction::new_signed_with_payer(
+        &[init_treasury_ix],
+        Some(&setup.payer.pubkey()),
+        &[&setup.payer],
+        setup.svm.latest_blockhash(),
+    );
+
+    setup.svm.send_transaction(tx).unwrap();
+
+    // Verify treasury account was created properly
+    let treasury_account = setup.svm.get_account(&treasury_pda).unwrap();
+    let treasury_data = Treasury::try_from_slice(&treasury_account.data).unwrap();
+    assert_eq!(treasury_data.authority, authority.pubkey());
+    assert_eq!(treasury_data.fee, fee);
+}
+
+#[test]
+fn test_update_treasury_authority() {
+    let mut setup = TestSetup::new();
+
+    // First initialize treasury
+    let initial_authority = Keypair::new();
+    let initial_fee = 100u64;
+
+    let mut init_treasury_data = vec![0];
+    init_treasury_data.extend_from_slice(&initial_authority.pubkey().to_bytes());
+    init_treasury_data.extend_from_slice(&initial_fee.to_le_bytes());
+
+    let (treasury_pda, _) = Pubkey::find_program_address(&[b"treasury"], &PROGRAM_KEY);
+
+    let init_treasury_ix = solana_program::instruction::Instruction {
+        program_id: PROGRAM_KEY,
+        accounts: vec![
+            AccountMeta::new(setup.payer.pubkey(), true),
+            AccountMeta::new(treasury_pda, false),
+            AccountMeta::new_readonly(initial_authority.pubkey(), false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(solana_program::sysvar::rent::id(), false),
+        ],
+        data: init_treasury_data,
+    };
+
+    let tx = Transaction::new_signed_with_payer(
+        &[init_treasury_ix],
+        Some(&setup.payer.pubkey()),
+        &[&setup.payer],
+        setup.svm.latest_blockhash(),
+    );
+
+    setup.svm.send_transaction(tx).unwrap();
+
+    // Now update the authority
+    let new_authority = Keypair::new();
+    let new_fee = 200u64;
+
+    let mut update_treasury_data = vec![1]; // variant 1 for UpdateTreasuryAuthority
+    update_treasury_data.extend_from_slice(&new_authority.pubkey().to_bytes());
+    update_treasury_data.extend_from_slice(&new_fee.to_le_bytes());
+
+    let update_treasury_ix = solana_program::instruction::Instruction {
+        program_id: PROGRAM_KEY,
+        accounts: vec![
+            AccountMeta::new_readonly(initial_authority.pubkey(), true),
+            AccountMeta::new(treasury_pda, false),
+            AccountMeta::new_readonly(new_authority.pubkey(), false),
+        ],
+        data: update_treasury_data,
+    };
+
+    let tx = Transaction::new_signed_with_payer(
+        &[update_treasury_ix],
+        Some(&setup.payer.pubkey()),
+        &[&setup.payer, &initial_authority],
+        setup.svm.latest_blockhash(),
+    );
+
+    setup.svm.send_transaction(tx).unwrap();
+
+    // Verify treasury was updated
+    let treasury_account = setup.svm.get_account(&treasury_pda).unwrap();
+    let treasury_data = Treasury::try_from_slice(&treasury_account.data).unwrap();
+    assert_eq!(treasury_data.authority, new_authority.pubkey());
+    assert_eq!(treasury_data.fee, new_fee);
+}
 
 #[test]
 fn test_initialize_order() {
@@ -35,7 +147,7 @@ fn test_change_order() {
     // Change order amounts
     let new_maker_amount = 100_000u64;
     let new_taker_amount = 200_000u64;
-    let mut change_amount_data = vec![1]; // variant 1 for ChangeOrderAmounts
+    let mut change_amount_data = vec![4]; // variant 4 for ChangeOrderAmounts
     change_amount_data.extend_from_slice(&new_maker_amount.to_le_bytes());
     change_amount_data.extend_from_slice(&new_taker_amount.to_le_bytes());
 
@@ -74,7 +186,7 @@ fn test_change_taker() {
 
     // Test ChangeTaker
     let new_taker = Keypair::new();
-    let mut change_taker_data = vec![2]; // variant 2 for ChangeTaker
+    let mut change_taker_data = vec![5]; // variant 5 for ChangeTaker
     change_taker_data.extend_from_slice(&new_taker.pubkey().to_bytes());
 
     let change_taker_ix = solana_program::instruction::Instruction {
@@ -159,7 +271,7 @@ fn test_complete_swap() {
     setup.svm.send_transaction(tx).unwrap();
 
     // Complete swap
-    let complete_swap_data = vec![3]; // variant 3 for CompleteSwap
+    let complete_swap_data = vec![6]; // variant 6 for CompleteSwap
     let complete_swap_ix = solana_program::instruction::Instruction {
         program_id: PROGRAM_KEY,
         accounts: vec![
@@ -215,7 +327,7 @@ fn test_close_order() {
     .amount;
 
     // Close order
-    let close_order_data = vec![4]; // variant 4 for CloseOrder
+    let close_order_data = vec![7]; // variant 7 for CloseOrder
     let close_order_ix = solana_program::instruction::Instruction {
         program_id: PROGRAM_KEY,
         accounts: vec![

@@ -1,6 +1,6 @@
 use solana_program::program_error::ProgramError;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SwapError {
     InvalidInstruction,
     OrderAlreadyInitialized,
@@ -13,6 +13,8 @@ pub enum SwapError {
     InvalidTokenProgram,
     InvalidTokenAccount,
     InsufficientFunds,
+    Overflow,
+    InvalidDecimals,
 }
 
 impl From<SwapError> for ProgramError {
