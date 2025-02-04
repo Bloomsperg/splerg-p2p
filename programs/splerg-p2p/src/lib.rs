@@ -5,6 +5,7 @@ pub mod instruction;
 pub mod math;
 pub mod processor;
 pub mod state;
+pub mod utils;
 pub mod validation;
 
 pub mod splerg_p2p {

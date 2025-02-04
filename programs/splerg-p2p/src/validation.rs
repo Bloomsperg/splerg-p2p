@@ -182,3 +182,11 @@ pub fn validate_treasury_authority(
 
     Ok(())
 }
+
+pub fn validate_mint(mint_info: &AccountInfo, expected_mint: &Pubkey) -> ProgramResult {
+    if mint_info.key != expected_mint {
+        return Err(SwapError::InvalidMint.into());
+    }
+
+    Ok(())
+}
