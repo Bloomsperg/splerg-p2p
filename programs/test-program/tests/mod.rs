@@ -105,7 +105,6 @@ fn test_update_treasury_authority() {
         accounts: vec![
             AccountMeta::new_readonly(initial_authority.pubkey(), true),
             AccountMeta::new(treasury_pda, false),
-            AccountMeta::new_readonly(new_authority.pubkey(), false),
         ],
         data: update_treasury_data,
     };
@@ -317,8 +316,6 @@ fn test_swap_harvest() {
         program_id: PROGRAM_KEY,
         accounts: vec![
             AccountMeta::new(taker.pubkey(), true),
-            AccountMeta::new(setup.maker_mint.pubkey(), false),
-            AccountMeta::new(setup.taker_mint.pubkey(), false),
             AccountMeta::new(setup.order_pda, false),
             AccountMeta::new(maker_taker_token_ata, false),
             AccountMeta::new(taker_taker_token_ata, false),
@@ -327,6 +324,8 @@ fn test_swap_harvest() {
             AccountMeta::new(treasury_pda, false),
             AccountMeta::new(treasury_maker_ata, false),
             AccountMeta::new(treasury_taker_ata, false),
+            AccountMeta::new(setup.maker_mint.pubkey(), false),
+            AccountMeta::new(setup.taker_mint.pubkey(), false),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(spl_token_2022::id(), false),
         ],

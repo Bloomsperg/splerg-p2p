@@ -129,14 +129,10 @@ impl Processor {
         let account_info_iter = &mut accounts.iter();
         let authority_info = next_account_info(account_info_iter)?;
         let treasury_account_info = next_account_info(account_info_iter)?;
-        let new_authority_info = next_account_info(account_info_iter)?;
 
         validate_treasury_authority(treasury_account_info, authority_info)?;
 
         let new_authority_pubkey = Pubkey::new_from_array(new_authority);
-        if new_authority_pubkey != *new_authority_info.key {
-            return Err(ProgramError::InvalidArgument);
-        }
 
         let mut treasury = Treasury::try_from_slice(&treasury_account_info.data.borrow())?;
         treasury.authority = new_authority_pubkey;
@@ -232,8 +228,8 @@ impl Processor {
         let account_info_iter = &mut accounts.iter();
         let maker_info = next_account_info(account_info_iter)?;
         let order_account_info = next_account_info(account_info_iter)?;
-        let maker_mint_ata_info = next_account_info(account_info_iter)?;
-        let order_maker_mint_ata_info = next_account_info(account_info_iter)?;
+        let maker_mint_ata = next_account_info(account_info_iter)?;
+        let order_maker_ata = next_account_info(account_info_iter)?;
         let maker_mint_info = next_account_info(account_info_iter)?;
         let taker_mint_info = next_account_info(account_info_iter)?;
         let system_program_info = next_account_info(account_info_iter)?;
@@ -246,14 +242,10 @@ impl Processor {
         validate_token_mint(taker_mint_info)?;
         check_spl_token_program_account(token_program.key)?;
         validate_token_program(maker_mint_info, token_program.key)?;
-        validate_token_account(maker_mint_ata_info, maker_info.key, maker_mint_info.key)?;
+        validate_token_account(maker_mint_ata, maker_info.key, maker_mint_info.key)?;
         validate_system_program(system_program_info.key)?;
         validate_rent_sysvar(rent_info.key)?;
-        validate_token_account(
-            order_maker_mint_ata_info,
-            order_account_info.key,
-            maker_mint_info.key,
-        )?;
+        validate_token_account(order_maker_ata, order_account_info.key, maker_mint_info.key)?;
 
         let (_, bump) = get_order_pda(
             program_id,
@@ -291,8 +283,8 @@ impl Processor {
         let transfer_instruction = if *token_program.key == spl_token::id() {
             spl_token::instruction::transfer(
                 token_program.key,
-                maker_mint_ata_info.key,
-                order_maker_mint_ata_info.key,
+                maker_mint_ata.key,
+                order_maker_ata.key,
                 maker_info.key,
                 &[],
                 maker_amount,
@@ -301,9 +293,9 @@ impl Processor {
             let account_data = spl_token_2022::state::Mint::unpack(&maker_mint_info.data.borrow())?;
             spl_token_2022::instruction::transfer_checked(
                 token_program.key,
-                maker_mint_ata_info.key,
+                maker_mint_ata.key,
                 maker_mint_info.key,
-                order_maker_mint_ata_info.key,
+                order_maker_ata.key,
                 maker_info.key,
                 &[],
                 maker_amount,
@@ -314,8 +306,8 @@ impl Processor {
         invoke(
             &transfer_instruction,
             &[
-                maker_mint_ata_info.clone(),
-                order_maker_mint_ata_info.clone(),
+                maker_mint_ata.clone(),
+                order_maker_ata.clone(),
                 maker_info.clone(),
                 token_program.clone(),
             ],
@@ -503,8 +495,6 @@ impl Processor {
     fn process_complete_swap(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
         let account_info_iter: &mut std::slice::Iter<'_, AccountInfo<'_>> = &mut accounts.iter();
         let taker_info = next_account_info(account_info_iter)?;
-        let maker_mint = next_account_info(account_info_iter)?;
-        let taker_mint = next_account_info(account_info_iter)?;
         let order_account_info = next_account_info(account_info_iter)?;
         let maker_taker_ata = next_account_info(account_info_iter)?;
         let taker_ata = next_account_info(account_info_iter)?;
@@ -513,6 +503,8 @@ impl Processor {
         let treasury_account_info = next_account_info(account_info_iter)?;
         let treasury_maker_ata = next_account_info(account_info_iter)?;
         let treasury_taker_ata = next_account_info(account_info_iter)?;
+        let maker_mint = next_account_info(account_info_iter)?;
+        let taker_mint = next_account_info(account_info_iter)?;
         let token_program = next_account_info(account_info_iter)?;
         let token_program_2022 = next_account_info(account_info_iter)?;
 

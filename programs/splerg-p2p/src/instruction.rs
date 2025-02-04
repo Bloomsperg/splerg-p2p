@@ -11,24 +11,21 @@ pub enum SwapInstruction {
     /// * [] Rent sysvar
     InitializeTreasury { authority: [u8; 32], fee: u16 },
 
-    /// Initialize Treasury
+    /// Update Treasury Authority
     /// Accounts:
     /// * [signer] Authority
     /// * [writable] Treasury PDA account
     /// * [] Authority
-    /// * [] System program
-    /// * [] Rent sysvar
     UpdateTreasuryAuthority { authority: [u8; 32], fee: u16 },
 
     /// Harvest Treasury
     /// Accounts:
     /// * [signer] Authority
-    /// * [writable] receiver_token_account
     /// * [writable] treasury_token_account
-    /// * [] Treasury PDA account
+    /// * [writable] Treasury PDA account
+    /// * [writable] receiver_token_account
     /// * [] Mint
-    /// * [] System program
-    /// * [] Rent sysvar
+    /// * [] Token program
     Harvest,
 
     /// Initialize P2P swap order
@@ -36,7 +33,7 @@ pub enum SwapInstruction {
     /// * [signer] Maker (order creator, pays rent)
     /// * [writable] Order PDA account (to be created)
     /// * [writable] Maker mint ATA (initialized)
-    /// * [writable] PDA ATA (initialized)
+    /// * [writable] PDA maker mint ATA (initialized)
     /// * [] Maker token mint
     /// * [] Taker token mint
     /// * [] System program
@@ -53,6 +50,7 @@ pub enum SwapInstruction {
     /// * [writable] Order PDA account
     /// * [writable] Program's escrow token account
     /// * [writable] Maker's token account
+    /// * [] Mint info
     /// * [] Token program
     ChangeOrderAmounts {
         new_maker_amount: u64,
@@ -74,6 +72,8 @@ pub enum SwapInstruction {
     /// * [writable] Taker's sending token account
     /// * [writable] Taker's receiving token account
     /// * [writable] Program's escrow token account
+    /// * [] Maker mint
+    /// * [] Taker mint
     /// * [] Token program
     /// * [] Token Authority PDA
     CompleteSwap,
@@ -82,10 +82,5 @@ pub enum SwapInstruction {
     /// Accounts:
     /// * [signer] Order authority (maker if incomplete, either party if complete)
     /// * [writable] Order PDA account
-    /// * [writable] Rent receiver
-    /// * [writable, optional] Program's escrow token account
-    /// * [writable, optional] Maker's token account (refund)
-    /// * [optional] Token program
-    /// * [optional] Token Authority PDA
     CloseOrder,
 }
