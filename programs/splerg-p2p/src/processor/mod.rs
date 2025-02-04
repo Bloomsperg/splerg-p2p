@@ -18,9 +18,11 @@ use {
 use crate::{
     error::SwapError,
     instruction::SwapInstruction,
+    math::fee::calculate_token_fee,
     state::{SwapOrder, Treasury},
+    utils::get_mint_decimals,
     validation::{
-        get_order_pda, get_treasury_pda, validate_authority, validate_init_amounts,
+        get_order_pda, get_treasury_pda, validate_authority, validate_init_amounts, validate_mint,
         validate_order_pda, validate_rent_sysvar, validate_signer, validate_system_program,
         validate_taker, validate_token_account, validate_token_mint, validate_token_program,
         validate_treasury_authority,
@@ -42,11 +44,9 @@ impl Processor {
                 Self::process_initialize_treasury(program_id, accounts, authority, fee)
             }
             SwapInstruction::UpdateTreasuryAuthority { authority, fee } => {
-                Self::process_update_treasury_authority(program_id, accounts, authority, fee)
+                Self::process_update_treasury_authority(accounts, authority, fee)
             }
-            SwapInstruction::Harvest => {
-                todo!()
-            }
+            SwapInstruction::Harvest => Self::process_harvest(accounts),
             SwapInstruction::InitializeOrder {
                 maker_amount,
                 taker_amount,
@@ -72,7 +72,7 @@ impl Processor {
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         authority: [u8; 32],
-        fee: u64,
+        fee: u16,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let payer_info = next_account_info(account_info_iter)?;
@@ -122,10 +122,9 @@ impl Processor {
     }
 
     fn process_update_treasury_authority(
-        program_id: &Pubkey,
         accounts: &[AccountInfo],
         new_authority: [u8; 32],
-        fee: u64,
+        fee: u16,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let authority_info = next_account_info(account_info_iter)?;
@@ -143,6 +142,83 @@ impl Processor {
         treasury.authority = new_authority_pubkey;
         treasury.fee = fee;
         treasury.serialize(&mut *treasury_account_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    fn process_harvest(accounts: &[AccountInfo]) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let authority_info = next_account_info(account_info_iter)?;
+        let treasury_account_info = next_account_info(account_info_iter)?;
+        let treasury_token_ata = next_account_info(account_info_iter)?;
+        let receiver_token_ata = next_account_info(account_info_iter)?;
+        let token_mint_info = next_account_info(account_info_iter)?;
+        let token_program = next_account_info(account_info_iter)?;
+
+        // Validate accounts
+        validate_treasury_authority(treasury_account_info, authority_info)?;
+        check_spl_token_program_account(token_program.key)?;
+        validate_token_mint(token_mint_info)?;
+        validate_token_account(
+            treasury_token_ata,
+            treasury_account_info.key,
+            token_mint_info.key,
+        )?;
+        validate_token_account(receiver_token_ata, authority_info.key, token_mint_info.key)?;
+
+        let treasury = Treasury::try_from_slice(&treasury_account_info.data.borrow())?;
+
+        // Get the treasury token account balance
+        let treasury_token_data =
+            spl_token::state::Account::unpack(&treasury_token_ata.data.borrow())?;
+        let balance = treasury_token_data.amount;
+
+        if balance == 0 {
+            return Err(SwapError::InsufficientFunds.into());
+        }
+
+        let decimals = get_mint_decimals(token_mint_info)?;
+
+        // Transfer full balance from treasury to receiver
+        if *token_program.key == spl_token::id() {
+            invoke_signed(
+                &spl_token::instruction::transfer(
+                    token_program.key,
+                    treasury_token_ata.key,
+                    receiver_token_ata.key,
+                    treasury_account_info.key,
+                    &[],
+                    balance,
+                )?,
+                &[
+                    treasury_token_ata.clone(),
+                    receiver_token_ata.clone(),
+                    treasury_account_info.clone(),
+                    token_program.clone(),
+                ],
+                &[&[b"treasury", &[treasury.bump]]],
+            )?;
+        } else {
+            invoke_signed(
+                &spl_token_2022::instruction::transfer_checked(
+                    token_program.key,
+                    treasury_token_ata.key,
+                    token_mint_info.key,
+                    receiver_token_ata.key,
+                    treasury_account_info.key,
+                    &[],
+                    balance,
+                    decimals,
+                )?,
+                &[
+                    treasury_token_ata.clone(),
+                    receiver_token_ata.clone(),
+                    treasury_account_info.clone(),
+                    token_program.clone(),
+                ],
+                &[&[b"treasury", &[treasury.bump]]],
+            )?;
+        }
 
         Ok(())
     }
@@ -270,11 +346,13 @@ impl Processor {
         let order_account_info = next_account_info(account_info_iter)?;
         let order_token_account = next_account_info(account_info_iter)?;
         let maker_token_account = next_account_info(account_info_iter)?;
+        let mint_info = next_account_info(account_info_iter)?;
         let token_program = next_account_info(account_info_iter)?;
 
         let (mut order, _) = validate_order_pda(program_id, order_account_info)?;
 
         validate_authority(maker_info, &order)?;
+        validate_mint(mint_info, &order.maker_token_mint)?;
         check_spl_token_program_account(token_program.key)?;
         validate_token_account(
             order_token_account,
@@ -291,6 +369,8 @@ impl Processor {
         let escrow_token_data =
             spl_token::state::Account::unpack(&order_token_account.data.borrow())?;
         let current_escrow_amount = escrow_token_data.amount;
+
+        let decimals = get_mint_decimals(mint_info)?;
 
         match new_maker_amount.cmp(&current_escrow_amount) {
             std::cmp::Ordering::Greater => {
@@ -316,13 +396,15 @@ impl Processor {
                     )?;
                 } else {
                     invoke(
-                        &spl_token_2022::instruction::transfer(
+                        &spl_token_2022::instruction::transfer_checked(
                             token_program.key,
                             maker_token_account.key,
+                            mint_info.key,
                             order_token_account.key,
                             maker_info.key,
                             &[],
                             additional_amount,
+                            decimals,
                         )?,
                         &[
                             maker_token_account.clone(),
@@ -363,13 +445,15 @@ impl Processor {
                     )?;
                 } else {
                     invoke_signed(
-                        &spl_token_2022::instruction::transfer(
+                        &spl_token_2022::instruction::transfer_checked(
                             token_program.key,
                             order_token_account.key,
+                            mint_info.key,
                             maker_token_account.key,
                             order_account_info.key,
                             &[],
                             refund_amount,
+                            decimals,
                         )?,
                         &[
                             order_token_account.clone(),
@@ -387,7 +471,7 @@ impl Processor {
                     )?;
                 }
             }
-            std::cmp::Ordering::Equal => {} // No token transfer needed
+            std::cmp::Ordering::Equal => {}
         }
 
         order.maker_amount = new_maker_amount;
@@ -417,70 +501,96 @@ impl Processor {
     }
 
     fn process_complete_swap(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-        let account_info_iter = &mut accounts.iter();
+        let account_info_iter: &mut std::slice::Iter<'_, AccountInfo<'_>> = &mut accounts.iter();
         let taker_info = next_account_info(account_info_iter)?;
+        let maker_mint = next_account_info(account_info_iter)?;
+        let taker_mint = next_account_info(account_info_iter)?;
         let order_account_info = next_account_info(account_info_iter)?;
-        let maker_taker_mint_ata = next_account_info(account_info_iter)?;
-        let taker_sending_ata = next_account_info(account_info_iter)?;
-        let taker_maker_mint_ata = next_account_info(account_info_iter)?;
-        let order_maker_token_ata = next_account_info(account_info_iter)?;
+        let maker_taker_ata = next_account_info(account_info_iter)?;
+        let taker_ata = next_account_info(account_info_iter)?;
+        let taker_maker_ata = next_account_info(account_info_iter)?;
+        let order_maker_ata = next_account_info(account_info_iter)?;
+        let treasury_account_info = next_account_info(account_info_iter)?;
+        let treasury_maker_ata = next_account_info(account_info_iter)?;
+        let treasury_taker_ata = next_account_info(account_info_iter)?;
         let token_program = next_account_info(account_info_iter)?;
+        let token_program_2022 = next_account_info(account_info_iter)?;
 
         let (order, _) = validate_order_pda(program_id, order_account_info)?;
         validate_taker(taker_info, &order)?;
+        validate_mint(maker_mint, &order.maker_token_mint)?;
+        validate_mint(taker_mint, &order.taker_token_mint)?;
+
         check_spl_token_program_account(token_program.key)?;
-        validate_token_account(maker_taker_mint_ata, &order.maker, &order.taker_token_mint)?;
+        validate_token_account(maker_taker_ata, &order.maker, &order.taker_token_mint)?;
+        validate_token_account(taker_maker_ata, taker_info.key, &order.maker_token_mint)?;
+        validate_token_account(taker_ata, taker_info.key, &order.taker_token_mint)?;
         validate_token_account(
-            taker_maker_mint_ata,
-            taker_info.key,
-            &order.maker_token_mint,
-        )?;
-        validate_token_account(taker_sending_ata, taker_info.key, &order.taker_token_mint)?;
-        validate_token_account(
-            order_maker_token_ata,
+            order_maker_ata,
             order_account_info.key,
             &order.maker_token_mint,
         )?;
 
         // Verify we have enough tokens in escrow
-        let escrow_token_data =
-            spl_token::state::Account::unpack(&order_maker_token_ata.data.borrow())?;
+        let escrow_token_data = spl_token::state::Account::unpack(&order_maker_ata.data.borrow())?;
         if escrow_token_data.amount < order.maker_amount {
             return Err(SwapError::InsufficientFunds.into());
         }
 
-        if *token_program.key == spl_token::id() {
+        let treasury = Treasury::try_from_slice(&treasury_account_info.data.borrow())?;
+
+        let maker_fee = calculate_token_fee(order.maker_amount.into(), treasury.fee)
+            .map_err(|_| ProgramError::from(SwapError::Overflow))?;
+        let taker_fee = calculate_token_fee(order.taker_amount.into(), treasury.fee)
+            .map_err(|_| ProgramError::from(SwapError::Overflow))?;
+
+        let maker_amount_after_fee = order
+            .maker_amount
+            .checked_sub(maker_fee.try_into().map_err(|_| SwapError::Overflow)?)
+            .ok_or(SwapError::Overflow)?;
+        let taker_amount_after_fee = order
+            .taker_amount
+            .checked_sub(taker_fee.try_into().map_err(|_| SwapError::Overflow)?)
+            .ok_or(SwapError::Overflow)?;
+
+        let taker_decimals = get_mint_decimals(taker_mint)?;
+        let maker_decimals = get_mint_decimals(maker_mint)?;
+
+        // transfer taker tokens from taker directly -> maker's taker mint
+        if taker_mint.owner == &spl_token::id() {
             invoke(
                 &spl_token::instruction::transfer(
                     token_program.key,
-                    taker_sending_ata.key,
-                    maker_taker_mint_ata.key,
+                    taker_ata.key,
+                    maker_taker_ata.key,
                     taker_info.key,
                     &[],
-                    order.taker_amount,
+                    taker_amount_after_fee,
                 )?,
                 &[
-                    taker_sending_ata.clone(),
-                    maker_taker_mint_ata.clone(),
+                    taker_ata.clone(),
+                    maker_taker_ata.clone(),
                     taker_info.clone(),
                     token_program.clone(),
                 ],
             )?;
         } else {
             invoke(
-                &spl_token_2022::instruction::transfer(
-                    token_program.key,
-                    taker_sending_ata.key,
-                    maker_taker_mint_ata.key,
+                &spl_token_2022::instruction::transfer_checked(
+                    token_program_2022.key,
+                    taker_ata.key,
+                    taker_mint.key,
+                    maker_taker_ata.key,
                     taker_info.key,
                     &[],
-                    order.taker_amount,
+                    taker_amount_after_fee,
+                    taker_decimals,
                 )?,
                 &[
-                    taker_sending_ata.clone(),
-                    maker_taker_mint_ata.clone(),
+                    taker_ata.clone(),
+                    maker_taker_ata.clone(),
                     taker_info.clone(),
-                    token_program.clone(),
+                    token_program_2022.clone(),
                 ],
             )?;
         }
@@ -489,15 +599,15 @@ impl Processor {
             invoke_signed(
                 &spl_token::instruction::transfer(
                     token_program.key,
-                    order_maker_token_ata.key,
-                    taker_maker_mint_ata.key,
+                    order_maker_ata.key,
+                    taker_maker_ata.key,
                     order_account_info.key,
                     &[],
-                    order.maker_amount,
+                    maker_amount_after_fee,
                 )?,
                 &[
-                    order_maker_token_ata.clone(),
-                    taker_maker_mint_ata.clone(),
+                    order_maker_ata.clone(),
+                    taker_maker_ata.clone(),
                     order_account_info.clone(),
                     token_program.clone(),
                 ],
@@ -511,19 +621,21 @@ impl Processor {
             )?;
         } else {
             invoke_signed(
-                &spl_token_2022::instruction::transfer(
-                    token_program.key,
-                    order_maker_token_ata.key,
-                    taker_maker_mint_ata.key,
+                &spl_token_2022::instruction::transfer_checked(
+                    token_program_2022.key,
+                    order_maker_ata.key,
+                    maker_mint.key,
+                    taker_maker_ata.key,
                     order_account_info.key,
                     &[],
-                    order.maker_amount,
+                    maker_amount_after_fee,
+                    maker_decimals,
                 )?,
                 &[
-                    order_maker_token_ata.clone(),
-                    taker_maker_mint_ata.clone(),
+                    order_maker_ata.clone(),
+                    taker_maker_ata.clone(),
                     order_account_info.clone(),
-                    token_program.clone(),
+                    token_program_2022.clone(),
                 ],
                 &[&[
                     b"order",
@@ -535,65 +647,20 @@ impl Processor {
             )?;
         }
 
-        Ok(())
-    }
-
-    fn process_close_order(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-        let account_info_iter = &mut accounts.iter();
-        let authority_info = next_account_info(account_info_iter)?;
-        let order_account_info = next_account_info(account_info_iter)?;
-        let order_token_ata = next_account_info(account_info_iter)?;
-        let maker_token_ata = next_account_info(account_info_iter)?;
-        let token_program = next_account_info(account_info_iter)?;
-
-        let (order, _) = validate_order_pda(program_id, order_account_info)?;
-        validate_authority(authority_info, &order)?;
-        check_spl_token_program_account(token_program.key)?;
-        validate_token_account(
-            order_token_ata,
-            order_account_info.key,
-            &order.maker_token_mint,
-        )?;
-        validate_token_account(maker_token_ata, &order.maker, &order.maker_token_mint)?;
-
-        let token_data = spl_token::state::Account::unpack(&order_token_ata.data.borrow())?;
-        if token_data.amount > 0 {
+        if maker_fee > 0 {
             if *token_program.key == spl_token::id() {
                 invoke_signed(
                     &spl_token::instruction::transfer(
                         token_program.key,
-                        order_token_ata.key,
-                        maker_token_ata.key,
+                        order_maker_ata.key,
+                        treasury_maker_ata.key,
                         order_account_info.key,
                         &[],
-                        token_data.amount,
+                        maker_fee.try_into().unwrap(),
                     )?,
                     &[
-                        order_token_ata.clone(),
-                        maker_token_ata.clone(),
-                        order_account_info.clone(),
-                        token_program.clone(),
-                    ],
-                    &[&[
-                        b"order",
-                        &order.maker.to_bytes(),
-                        &order.maker_token_mint.to_bytes(),
-                        &order.taker_token_mint.to_bytes(),
-                        &[order.bump],
-                    ]],
-                )?;
-
-                invoke_signed(
-                    &spl_token::instruction::close_account(
-                        token_program.key,
-                        order_token_ata.key,
-                        authority_info.key,
-                        order_account_info.key,
-                        &[],
-                    )?,
-                    &[
-                        order_token_ata.clone(),
-                        authority_info.clone(),
+                        order_maker_ata.clone(),
+                        treasury_maker_ata.clone(),
                         order_account_info.clone(),
                         token_program.clone(),
                     ],
@@ -607,42 +674,21 @@ impl Processor {
                 )?;
             } else {
                 invoke_signed(
-                    &spl_token_2022::instruction::transfer(
-                        token_program.key,
-                        order_token_ata.key,
-                        maker_token_ata.key,
+                    &spl_token_2022::instruction::transfer_checked(
+                        token_program_2022.key,
+                        order_maker_ata.key,
+                        maker_mint.key,
+                        treasury_maker_ata.key,
                         order_account_info.key,
                         &[],
-                        token_data.amount,
+                        maker_fee.try_into().unwrap(),
+                        maker_decimals,
                     )?,
                     &[
-                        order_token_ata.clone(),
-                        maker_token_ata.clone(),
+                        order_maker_ata.clone(),
+                        treasury_maker_ata.clone(),
                         order_account_info.clone(),
-                        token_program.clone(),
-                    ],
-                    &[&[
-                        b"order",
-                        &order.maker.to_bytes(),
-                        &order.maker_token_mint.to_bytes(),
-                        &order.taker_token_mint.to_bytes(),
-                        &[order.bump],
-                    ]],
-                )?;
-
-                invoke_signed(
-                    &spl_token_2022::instruction::close_account(
-                        token_program.key,
-                        order_token_ata.key,
-                        authority_info.key,
-                        order_account_info.key,
-                        &[],
-                    )?,
-                    &[
-                        order_token_ata.clone(),
-                        authority_info.clone(),
-                        order_account_info.clone(),
-                        token_program.clone(),
+                        token_program_2022.clone(),
                     ],
                     &[&[
                         b"order",
@@ -655,10 +701,77 @@ impl Processor {
             }
         }
 
+        if taker_fee > 0 {
+            if *token_program.key == spl_token::id() {
+                invoke_signed(
+                    &spl_token::instruction::transfer(
+                        token_program.key,
+                        taker_ata.key,
+                        treasury_taker_ata.key,
+                        taker_info.key,
+                        &[],
+                        taker_fee.try_into().unwrap(),
+                    )?,
+                    &[
+                        taker_ata.clone(),
+                        treasury_taker_ata.clone(),
+                        taker_info.clone(),
+                        token_program.clone(),
+                    ],
+                    &[&[
+                        b"order",
+                        &order.maker.to_bytes(),
+                        &order.maker_token_mint.to_bytes(),
+                        &order.taker_token_mint.to_bytes(),
+                        &[order.bump],
+                    ]],
+                )?;
+            } else {
+                invoke_signed(
+                    &spl_token_2022::instruction::transfer_checked(
+                        token_program_2022.key,
+                        taker_ata.key,
+                        taker_mint.key,
+                        treasury_taker_ata.key,
+                        taker_info.key,
+                        &[],
+                        taker_fee.try_into().unwrap(),
+                        taker_decimals,
+                    )?,
+                    &[
+                        taker_ata.clone(),
+                        treasury_taker_ata.clone(),
+                        taker_info.clone(),
+                        token_program_2022.clone(),
+                    ],
+                    &[&[
+                        b"order",
+                        &order.maker.to_bytes(),
+                        &order.maker_token_mint.to_bytes(),
+                        &order.taker_token_mint.to_bytes(),
+                        &[order.bump],
+                    ]],
+                )?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn process_close_order(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let authority_info = next_account_info(account_info_iter)?;
+        let order_account_info = next_account_info(account_info_iter)?;
+
+        let (order, _) = validate_order_pda(program_id, order_account_info)?;
+        validate_authority(authority_info, &order)?;
+
+        // Transfer rent to authority
         let rent_lamports = order_account_info.lamports();
         **order_account_info.lamports.borrow_mut() = 0;
         **authority_info.lamports.borrow_mut() += rent_lamports;
 
+        // Clear the account data
         order_account_info.data.borrow_mut().fill(0);
 
         Ok(())
