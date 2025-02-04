@@ -215,7 +215,7 @@ fn test_change_taker() {
 }
 
 #[test]
-fn test_complete_swap() {
+fn test_swap_harvest() {
     let mut setup = TestSetup::new();
 
     let taker: Keypair = Keypair::new();
