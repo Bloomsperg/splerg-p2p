@@ -1,13 +1,11 @@
 use std::path::PathBuf;
 
-use borsh::BorshDeserialize;
 use litesvm::LiteSVM;
 use solana_sdk::{
     instruction::AccountMeta, pubkey::Pubkey, rent::sysvar, signature::Keypair, signer::Signer,
     system_program, transaction::Transaction,
 };
 use spl_associated_token_account::get_associated_token_address;
-use splerg_p2p::state::SwapOrder;
 
 use crate::{
     mints::{mint_to_ata, setup_mint},
@@ -111,6 +109,33 @@ impl TestSetup {
         }
     }
 
+    pub fn initialize_treasury(&mut self, authority: &Pubkey, fee: u16) -> Transaction {
+        let mut init_treasury_data = vec![0];
+        init_treasury_data.extend_from_slice(&authority.to_bytes());
+        init_treasury_data.extend_from_slice(&fee.to_le_bytes());
+
+        let (treasury_pda, _) = Pubkey::find_program_address(&[b"treasury"], &PROGRAM_KEY);
+
+        let init_treasury_ix = solana_program::instruction::Instruction {
+            program_id: PROGRAM_KEY,
+            accounts: vec![
+                AccountMeta::new(self.payer.pubkey(), true),
+                AccountMeta::new(treasury_pda, false),
+                AccountMeta::new_readonly(*authority, false),
+                AccountMeta::new_readonly(solana_program::system_program::id(), false),
+                AccountMeta::new_readonly(solana_program::sysvar::rent::id(), false),
+            ],
+            data: init_treasury_data,
+        };
+
+        Transaction::new_signed_with_payer(
+            &[init_treasury_ix],
+            Some(&self.payer.pubkey()),
+            &[&self.payer],
+            self.svm.latest_blockhash(),
+        )
+    }
+
     pub fn initialize_order(&mut self, maker_amount: u64, taker_amount: u64) -> Transaction {
         let mut ix_data = vec![3]; // variant 0 for InitializeOrder
         ix_data.extend_from_slice(&maker_amount.to_le_bytes());
@@ -138,14 +163,5 @@ impl TestSetup {
             &[&self.payer],
             self.svm.latest_blockhash(),
         )
-    }
-
-    pub fn verify_order(&self, expected_maker_amount: u64, expected_taker_amount: u64) {
-        let order_account = self.svm.get_account(&self.order_pda).unwrap();
-        let order_data = SwapOrder::try_from_slice(&order_account.data).unwrap();
-
-        assert_eq!(order_data.maker, self.payer.pubkey());
-        assert_eq!(order_data.maker_amount, expected_maker_amount);
-        assert_eq!(order_data.taker_amount, expected_taker_amount);
     }
 }

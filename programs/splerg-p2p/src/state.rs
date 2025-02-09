@@ -1,7 +1,8 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use shank::ShankAccount;
 use solana_program::pubkey::Pubkey;
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq)]
+#[derive(BorshSerialize, BorshDeserialize, Debug, ShankAccount, PartialEq)]
 pub struct SwapOrder {
     pub maker: Pubkey,
     pub taker: Pubkey,
@@ -41,7 +42,7 @@ impl SwapOrder {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, PartialEq)]
+#[derive(BorshSerialize, BorshDeserialize, Debug, ShankAccount, PartialEq)]
 pub struct Treasury {
     pub authority: Pubkey,
     pub fee: u16,

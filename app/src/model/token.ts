@@ -8,3 +8,12 @@ export interface TokenInfo {
 export type TokenDirectory = {
   [key: string]: TokenInfo;
 };
+
+export interface TokenInputProps {
+  token: string;
+  amount: string;
+  onAmountChange: (value: string) => void;
+  onTokenSelect: () => void;
+  label: string;
+  balance?: string;
+}

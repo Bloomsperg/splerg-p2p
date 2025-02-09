@@ -30,28 +30,11 @@ fn test_initialize_treasury() {
     init_treasury_data.extend_from_slice(&authority.pubkey().to_bytes());
     init_treasury_data.extend_from_slice(&fee.to_le_bytes());
 
-    let (treasury_pda, _) = Pubkey::find_program_address(&[b"treasury"], &PROGRAM_KEY);
-
-    let init_treasury_ix = solana_program::instruction::Instruction {
-        program_id: PROGRAM_KEY,
-        accounts: vec![
-            AccountMeta::new(setup.payer.pubkey(), true),
-            AccountMeta::new(treasury_pda, false),
-            AccountMeta::new_readonly(authority.pubkey(), false),
-            AccountMeta::new_readonly(solana_program::system_program::id(), false),
-            AccountMeta::new_readonly(solana_program::sysvar::rent::id(), false),
-        ],
-        data: init_treasury_data,
-    };
-
-    let tx = Transaction::new_signed_with_payer(
-        &[init_treasury_ix],
-        Some(&setup.payer.pubkey()),
-        &[&setup.payer],
-        setup.svm.latest_blockhash(),
-    );
+    let tx = setup.initialize_treasury(&authority.pubkey(), 100);
 
     setup.svm.send_transaction(tx).unwrap();
+
+    let (treasury_pda, _) = Pubkey::find_program_address(&[b"treasury"], &PROGRAM_KEY);
 
     let treasury_account = setup.svm.get_account(&treasury_pda).unwrap();
     let treasury_data = Treasury::try_from_slice(&treasury_account.data).unwrap();
@@ -72,24 +55,7 @@ fn test_update_treasury_authority() {
 
     let (treasury_pda, _) = Pubkey::find_program_address(&[b"treasury"], &PROGRAM_KEY);
 
-    let init_treasury_ix = solana_program::instruction::Instruction {
-        program_id: PROGRAM_KEY,
-        accounts: vec![
-            AccountMeta::new(setup.payer.pubkey(), true),
-            AccountMeta::new(treasury_pda, false),
-            AccountMeta::new_readonly(initial_authority.pubkey(), false),
-            AccountMeta::new_readonly(solana_program::system_program::id(), false),
-            AccountMeta::new_readonly(solana_program::sysvar::rent::id(), false),
-        ],
-        data: init_treasury_data,
-    };
-
-    let tx = Transaction::new_signed_with_payer(
-        &[init_treasury_ix],
-        Some(&setup.payer.pubkey()),
-        &[&setup.payer],
-        setup.svm.latest_blockhash(),
-    );
+    let tx = setup.initialize_treasury(&initial_authority.pubkey(), initial_fee);
 
     setup.svm.send_transaction(tx).unwrap();
 
@@ -134,7 +100,12 @@ fn test_initialize_order() {
     let tx = setup.initialize_order(maker_amount, taker_amount);
     setup.svm.send_transaction(tx).unwrap();
 
-    setup.verify_order(maker_amount, taker_amount);
+    let order_account = setup.svm.get_account(&setup.order_pda).unwrap();
+    let order_data = SwapOrder::try_from_slice(&order_account.data).unwrap();
+
+    assert_eq!(order_data.maker, setup.payer.pubkey());
+    assert_eq!(order_data.maker_amount, maker_amount);
+    assert_eq!(order_data.taker_amount, taker_amount);
 }
 
 #[test]
@@ -173,7 +144,13 @@ fn test_change_order() {
     );
 
     setup.svm.send_transaction(tx).unwrap();
-    setup.verify_order(new_maker_amount, new_taker_amount);
+
+    let order_account = setup.svm.get_account(&setup.order_pda).unwrap();
+    let order_data = SwapOrder::try_from_slice(&order_account.data).unwrap();
+
+    assert_eq!(order_data.maker, setup.payer.pubkey());
+    assert_eq!(order_data.maker_amount, new_maker_amount);
+    assert_eq!(order_data.taker_amount, new_taker_amount);
 }
 
 #[test]
@@ -402,7 +379,6 @@ fn test_swap_harvest() {
         expected_maker_fee
     );
 
-    // Verify treasury account is now empty
     let treasury_account = setup.svm.get_account(&treasury_maker_ata).unwrap();
     let treasury_balance = spl_token::state::Account::unpack(&treasury_account.data).unwrap();
     assert_eq!(treasury_balance.amount, 0);

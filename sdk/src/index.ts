@@ -1,36 +1,74 @@
-import { Connection, Keypair } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { createInitializeOrderInstruction } from '../generated';
+import { getAssociatedTokenAddress, createMint, createAssociatedTokenAccountInstruction, createMintToInstruction } from '@solana/spl-token';
 import { loadKeypairFromFile } from './utils';
-import { P2PSwapSDK } from './client';
 
 async function main() {
-  try {
-    const connection = new Connection('http://localhost:8899', 'confirmed');
-    const keypair = loadKeypairFromFile();
-    const balance = await connection.getBalance(keypair.publicKey);
+ const connection = new Connection('http://localhost:8899', 'confirmed');
+ const payer = loadKeypairFromFile();
 
-    console.log('Wallet public key:', keypair.publicKey.toString());
-    console.log('Balance:', balance / 1e9, 'SOL'); // Convert lamports to SOL
+ // Create test mints
+ const makerMint = await createMint(
+   connection,
+   payer,
+   payer.publicKey, 
+   null,
+   9
+ );
 
-    const sdk = new P2PSwapSDK(connection);
-    const mintA = Keypair.generate();
-    const mintB = Keypair.generate();
+ const takerMint = await createMint(
+   connection,
+   payer,
+   payer.publicKey,
+   null, 
+   9
+ );
 
-    const sig = await sdk.initializeOrder(
-      keypair,
-      mintA.publicKey,
-      mintB.publicKey,
-      BigInt(100),
-      BigInt(100),
-    );
+ const [orderPDA] = PublicKey.findProgramAddressSync(
+   [
+     Buffer.from('order'),
+     payer.publicKey.toBuffer(),
+     makerMint.toBuffer(),
+     takerMint.toBuffer()
+   ],
+   new PublicKey('GKTd9AGFpPGNKK28ncHeGGuT7rBJLzPxNjCUPKn8Yik8')
+ );
 
-    console.log(sig);
+ const makerATA = await getAssociatedTokenAddress(makerMint, payer.publicKey);
+ const pdaMakerATA = await getAssociatedTokenAddress(makerMint, orderPDA, true);
 
-    const order = await sdk.getOrder(keypair.publicKey, mintA.publicKey, mintB.publicKey);
+ const tx = new Transaction().add(
+   createAssociatedTokenAccountInstruction(
+     payer.publicKey,
+     makerATA,
+     payer.publicKey, 
+     makerMint
+   ),
+   createAssociatedTokenAccountInstruction(
+     payer.publicKey,
+     pdaMakerATA,
+     orderPDA,
+     makerMint  
+   ),
+   createMintToInstruction(makerMint, makerATA, payer.publicKey, 1000000000),
+   createInitializeOrderInstruction(
+     {
+       maker: payer.publicKey,
+       order: orderPDA,
+       makerAta: makerATA,
+       pdaMakerAta: pdaMakerATA,
+       makerMint,
+       takerMint,
+     },
+     {
+       makerAmount: BigInt(100),
+       takerAmount: BigInt(100), 
+     }
+   )
+ );
 
-    console.log(order);
-  } catch (error) {
-    console.error('Error:', error);
-  }
+ const sig = await connection.sendTransaction(tx, [payer]);
+ console.log('Signature:', sig);
 }
 
-main();
+main().catch(console.error);

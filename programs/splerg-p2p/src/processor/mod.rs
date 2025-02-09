@@ -357,17 +357,15 @@ impl Processor {
             &order.maker_token_mint,
         )?;
 
-        // Get current escrow balance
-        let escrow_token_data =
+        let order_token_data =
             spl_token::state::Account::unpack(&order_token_account.data.borrow())?;
-        let current_escrow_amount = escrow_token_data.amount;
+        let current_order_amount = order_token_data.amount;
 
         let decimals = get_mint_decimals(mint_info)?;
 
-        match new_maker_amount.cmp(&current_escrow_amount) {
+        match new_maker_amount.cmp(&current_order_amount) {
             std::cmp::Ordering::Greater => {
-                // Need to transfer additional tokens to escrow
-                let additional_amount = new_maker_amount - current_escrow_amount;
+                let additional_amount = new_maker_amount - current_order_amount;
 
                 if *token_program.key == spl_token::id() {
                     invoke(
@@ -408,8 +406,7 @@ impl Processor {
                 }
             }
             std::cmp::Ordering::Less => {
-                // Need to refund tokens to maker
-                let refund_amount = current_escrow_amount - new_maker_amount;
+                let refund_amount = current_order_amount - new_maker_amount;
 
                 if *token_program.key == spl_token::id() {
                     invoke_signed(
@@ -523,9 +520,8 @@ impl Processor {
             &order.maker_token_mint,
         )?;
 
-        // Verify we have enough tokens in escrow
-        let escrow_token_data = spl_token::state::Account::unpack(&order_maker_ata.data.borrow())?;
-        if escrow_token_data.amount < order.maker_amount {
+        let order_token_data = spl_token::state::Account::unpack(&order_maker_ata.data.borrow())?;
+        if order_token_data.amount < order.maker_amount {
             return Err(SwapError::InsufficientFunds.into());
         }
 

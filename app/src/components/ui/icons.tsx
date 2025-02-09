@@ -22,7 +22,7 @@ export const AddIcon: React.FC = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 16 16"
     fill="currentColor"
-    className="size-4"
+    className="size-6"
   >
     <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z" />
   </svg>
@@ -45,20 +45,20 @@ export const SwapVerticalIcon: React.FC = () => (
   </svg>
 );
 
-export const SwapHorizontalIcon: React.FC = () => (
+export const SwapHorizontalIcon: React.FC<{ className?: string }> = ({
+  className,
+}) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    fill="none"
+    className={`${className || ''}`}
+    width={24}
+    height={24}
     viewBox="0 0 24 24"
-    stroke-width="1.5"
-    stroke="currentColor"
-    className="size-4"
   >
     <path
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-    />
+      fill="currentColor"
+      d="M7.308 18.98L3 14.674l4.308-4.307l.708.713l-3.095 3.094h7.387v1H4.92l3.095 3.094zm9.384-5.365l-.707-.713l3.094-3.094h-7.387v-1h7.387l-3.094-3.094l.707-.714L21 9.308z"
+    ></path>
   </svg>
 );
 
@@ -97,7 +97,7 @@ export const TokenIcon: React.FC<TokenInfo> = ({ mint }) => {
   return <QuestionIcon />;
 };
 
-export const MailIcon: React.FC = () => (
+export const HomeIcon: React.FC = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
@@ -106,10 +106,77 @@ export const MailIcon: React.FC = () => (
     stroke="currentColor"
     className="size-6"
   >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={22}
+      height={22}
+      viewBox="0 0 22 22"
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+      >
+        <path strokeDasharray={16} strokeDashoffset={16} d="M5 21h14">
+          <animate
+            fill="freeze"
+            attributeName="stroke-dashoffset"
+            dur="0.2s"
+            values="16;0"
+          ></animate>
+        </path>
+        <path
+          strokeDasharray={14}
+          strokeDashoffset={14}
+          d="M5 21v-13M19 21v-13"
+        >
+          <animate
+            fill="freeze"
+            attributeName="stroke-dashoffset"
+            begin="0.2s"
+            dur="0.2s"
+            values="14;0"
+          ></animate>
+        </path>
+        <path strokeDasharray={28} strokeDashoffset={28} d="M2 10l10 -8l10 8">
+          <animate
+            fill="freeze"
+            attributeName="stroke-dashoffset"
+            begin="0.4s"
+            dur="0.6s"
+            values="28;0"
+          ></animate>
+        </path>
+      </g>
+    </svg>{' '}
+  </svg>
+);
+
+export const CancelIcon: React.FC = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={24}
+    height={24}
+    viewBox="0 0 24 24"
+  >
     <path
+      fill="none"
+      stroke="currentColor"
+      strokeDasharray={12}
+      strokeDashoffset={12}
       strokeLinecap="round"
       strokeLinejoin="round"
-      d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
-    />
+      strokeWidth={2}
+      d="M12 12l7 7M12 12l-7 -7M12 12l-7 7M12 12l7 -7"
+    >
+      <animate
+        fill="freeze"
+        attributeName="stroke-dashoffset"
+        dur="0.3s"
+        values="12;0"
+      ></animate>
+    </path>
   </svg>
 );

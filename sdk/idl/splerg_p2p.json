@@ -1,0 +1,558 @@
+{
+  "version": "0.1.0",
+  "name": "splerg_p2p",
+  "instructions": [
+    {
+      "name": "InitializeTreasury",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Payer account"
+          ]
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Treasury PDA account"
+          ]
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Authority account"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "System program"
+          ]
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Rent sysvar"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "fee",
+          "type": "u16"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "UpdateTreasuryAuthority",
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Authority account"
+          ]
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Treasury PDA account"
+          ]
+        },
+        {
+          "name": "newAuthority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "New authority account"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "fee",
+          "type": "u16"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    },
+    {
+      "name": "Harvest",
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Authority account"
+          ]
+        },
+        {
+          "name": "treasuryTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Treasury token account"
+          ]
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Treasury PDA account"
+          ]
+        },
+        {
+          "name": "receiverTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Receiver token account"
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Mint account"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token program"
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      }
+    },
+    {
+      "name": "InitializeOrder",
+      "accounts": [
+        {
+          "name": "maker",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Maker (order creator, pays rent)"
+          ]
+        },
+        {
+          "name": "order",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Order PDA account (to be created)"
+          ]
+        },
+        {
+          "name": "makerAta",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Maker mint ATA (initialized)"
+          ]
+        },
+        {
+          "name": "pdaMakerAta",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "PDA maker mint ATA (initialized)"
+          ]
+        },
+        {
+          "name": "makerMint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Maker token mint"
+          ]
+        },
+        {
+          "name": "takerMint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Taker token mint"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "System program"
+          ]
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Rent sysvar"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token Program (optional Token 2022)"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "makerAmount",
+          "type": "u64"
+        },
+        {
+          "name": "takerAmount",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      }
+    },
+    {
+      "name": "ChangeOrderAmounts",
+      "accounts": [
+        {
+          "name": "maker",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Maker account"
+          ]
+        },
+        {
+          "name": "order",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Order PDA account"
+          ]
+        },
+        {
+          "name": "escrowTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Program's escrow token account"
+          ]
+        },
+        {
+          "name": "makerTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Maker's token account"
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Mint info"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token program"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "newMakerAmount",
+          "type": "u64"
+        },
+        {
+          "name": "newTakerAmount",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      }
+    },
+    {
+      "name": "ChangeTaker",
+      "accounts": [
+        {
+          "name": "maker",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Maker account"
+          ]
+        },
+        {
+          "name": "order",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Order PDA account"
+          ]
+        },
+        {
+          "name": "newTaker",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "New taker pubkey"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "newTaker",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 5
+      }
+    },
+    {
+      "name": "CompleteSwap",
+      "accounts": [
+        {
+          "name": "taker",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Taker account"
+          ]
+        },
+        {
+          "name": "order",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Order PDA account"
+          ]
+        },
+        {
+          "name": "makerReceivingAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Maker's receiving token account"
+          ]
+        },
+        {
+          "name": "takerSendingAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Taker's sending token account"
+          ]
+        },
+        {
+          "name": "takerReceivingAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Taker's receiving token account"
+          ]
+        },
+        {
+          "name": "escrowTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Program's escrow token account"
+          ]
+        },
+        {
+          "name": "makerMint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Maker mint"
+          ]
+        },
+        {
+          "name": "takerMint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Taker mint"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token program"
+          ]
+        },
+        {
+          "name": "tokenAuthority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token Authority PDA"
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 6
+      }
+    },
+    {
+      "name": "CloseOrder",
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Order authority (maker if incomplete, either party if complete)"
+          ]
+        },
+        {
+          "name": "order",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Order PDA account"
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 7
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "name": "SwapOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "maker",
+            "type": "publicKey"
+          },
+          {
+            "name": "taker",
+            "type": "publicKey"
+          },
+          {
+            "name": "makerTokenMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "takerTokenMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "makerAmount",
+            "type": "u64"
+          },
+          {
+            "name": "takerAmount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Treasury",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "fee",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "GKTd9AGFpPGNKK28ncHeGGuT7rBJLzPxNjCUPKn8Yik8",
+    "binaryVersion": "0.4.2",
+    "libVersion": "0.4.2"
+  }
+}

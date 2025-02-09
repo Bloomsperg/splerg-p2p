@@ -1,4 +1,6 @@
+// App.tsx
 import { useMemo } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import {
   ConnectionProvider,
   WalletProvider,
@@ -8,22 +10,30 @@ import './App.css';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import { Navbar } from './components/navbar';
 import { Dashboard } from './components/dashboard';
+import { ProgramProvider } from './context/program-context';
+import { ModalProvider } from './context/modal-context';
 
 function App() {
-  const endpoint = 'http://127.0.0.1:8899';
-  const wallets = useMemo(() => [], [endpoint]);
+  const endpoint = 'http://0.0.0.0:8899';
+  const wallets = useMemo(() => [], []);
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <Dashboard />
-          </div>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <BrowserRouter>
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <ProgramProvider>
+              <ModalProvider>
+                <div className="flex flex-col min-h-screen">
+                  <Navbar />
+                  <Dashboard />
+                </div>
+              </ModalProvider>
+            </ProgramProvider>
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </BrowserRouter>
   );
 }
 

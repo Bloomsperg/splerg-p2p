@@ -1,12 +1,23 @@
+import { PublicKey } from '@solana/web3.js';
+import BN from 'bn.js';
+
 export interface Order {
-  maker: string;
-  taker: string;
-  maker_token_mint: string;
-  taker_token_mint: string;
-  maker_amount: number;
-  taker_amount: number;
+  id: PublicKey;
+  maker: PublicKey;
+  taker: PublicKey;
+  makerTokenMint: PublicKey;
+  takerTokenMint: PublicKey;
+  makerAmount: BN;
+  takerAmount: BN;
+  bump: number;
 }
 
 export interface OrderTableProps {
   orders?: Order[];
 }
+
+export type ModalType =
+  | 'fromTokenSelect'
+  | 'toTokenSelect'
+  | `modifySwap_${number}`
+  | `swapDetails_${number}`;
