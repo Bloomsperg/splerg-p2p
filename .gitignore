@@ -29,3 +29,9 @@ Cargo.lock
 .crates/**
 
 node_modules
+
+.turbo
+
+packages/sdk/**/*.js
+packages/sdk/**/*.js.*
+packages/sdk/**/*.d.ts

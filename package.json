@@ -1,8 +1,15 @@
 {
-	"dependencies": {
-		"@metaplex-foundation/solita": "^0.20.1"
+	"private": true,
+	"packageManager": "pnpm@8.15.6",
+	"scripts": {
+	  "build": "turbo run build",
+	  "dev": "turbo run dev",
+	  "lint": "turbo run lint",
+	  "format": "turbo run format"
 	},
 	"devDependencies": {
-		"@types/node": "^22.13.1"
+	  "turbo": "latest",
+	  "@types/node": "^22.13.1",
+	  "@metaplex-foundation/solita": "^0.20.1"
 	}
-}
+  }
