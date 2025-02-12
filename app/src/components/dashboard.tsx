@@ -11,7 +11,7 @@ export const Dashboard: React.FC<{}> = () => {
     <div className="flex flex-1 flex-col h-full w-full justify-between">
       {element}
       {showTabs && (
-        <nav className="tabs tabs-lift tabs-lg justify-end border-t border-t-sunset/50 bg-base-200">
+        <nav className="tabs tabs-lift tabs-lg justify-end border-t border-t-sunset/50 bg-base-200 sm:hidden">
           {navItems.map(({ path, label }) => (
             <NavLink
               key={path}

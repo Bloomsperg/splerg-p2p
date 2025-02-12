@@ -79,7 +79,7 @@ export const TokenList: React.FC<TokenListProps> = ({
             }}
             disabled={token.symbol === otherToken}
           >
-            <TokenIcon mint={token.symbol} />
+            <TokenIcon mint={token.mint} />
             <span>{token.name}</span>
             <span className="text-ghost">{token.symbol}</span>
           </button>

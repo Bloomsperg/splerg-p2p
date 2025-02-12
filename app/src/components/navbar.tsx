@@ -1,4 +1,6 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { navItems } from '../routes';
 
 // const AnimatedBanner = () => (
 //   <div className="banner-container">
@@ -19,6 +21,22 @@ export const Navbar: React.FC<{}> = () => {
           <div className="navbar w-full">
             <div className="text-xl mx-2 flex-1 px-2 text-right md:text-left">
               BloomSplerg
+            </div>
+            {/* Desktop Tabs */}
+            <div className="hidden md:block">
+              <nav className="tabs tabs-lg justify-end">
+                {navItems.map(({ path, label }) => (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    className={({ isActive }) =>
+                      `tab tab-lg ${isActive ? 'tab-active text-sunset' : ''}`
+                    }
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+              </nav>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { useProgramContext } from '../context/program-context';
 import { LoadingState, EmptyState } from '../components/ui/states';
 import { OrderTable } from '../components/ui/tables';
 import { OrderTableProps } from '../model';
-import { mockOrders } from '../utils';
+import { mockOrders } from '../utils/orders';
 
 export const TradesTable: React.FC<OrderTableProps> = ({ orders = [] }) => (
   <OrderTable

@@ -8,7 +8,7 @@ import React, {
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { Order } from '../model';
-import { mockOrders } from '../utils';
+import { mockOrders } from '../utils/orders';
 
 interface ProgramState {
   orders: Order[];

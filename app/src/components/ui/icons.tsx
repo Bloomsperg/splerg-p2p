@@ -1,6 +1,6 @@
 import React from 'react';
-import { TokenInfo } from '../../model/token';
-import { KNOWN_TOKENS } from '../../utils';
+import { getTokenInfoFromMint } from '../../utils/tokens';
+import { PublicKey } from '@solana/web3.js';
 
 export const ArrowIcon: React.FC = () => (
   <svg
@@ -79,9 +79,9 @@ export const QuestionIcon: React.FC = () => (
   </svg>
 );
 
-export const TokenIcon: React.FC<TokenInfo> = ({ mint }) => {
+export const TokenIcon: React.FC<{ mint: PublicKey }> = ({ mint }) => {
   if (mint) {
-    const tokenInfo = KNOWN_TOKENS[mint];
+    const tokenInfo = getTokenInfoFromMint(mint);
 
     if (tokenInfo) {
       return (

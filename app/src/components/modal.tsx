@@ -4,6 +4,8 @@ import { ModalType, Order } from '../model';
 import { CancelIcon } from './ui/icons';
 import { TokenPair } from './token/token-pair';
 import { useModal } from '../context/modal-context';
+import { Button } from './ui/buttons';
+import { ActionButtons } from './action-buttons';
 
 interface SwapModalProps {
   order: Order;
@@ -17,17 +19,11 @@ export const SwapModal: React.FC<SwapModalProps> = ({
   context,
 }) => {
   const navigate = useNavigate();
-  const { openModal, closeModal } = useModal();
-
-  const handleSwap = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    console.log('Swapping order:', order);
-    closeModal(`swapDetails-${index}` as ModalType);
-  };
+  const { closeModal } = useModal();
 
   const handleModifyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    closeModal(`swapDetails-${index}` as ModalType);
+    closeModal(`swap_modal_${index}` as ModalType);
     navigate(`/modify/${order.id}`);
   };
 
@@ -65,15 +61,13 @@ export const SwapModal: React.FC<SwapModalProps> = ({
               <p>Cancel your existing order or modify the terms.</p>
             </div>
             <div className="flex gap-4 mt-8">
-              <button className="btn btn-ghost border-red-500 border-2 text-gray-300">
-                Cancel
-              </button>
-              <button
-                className="btn btn-ghost border-sunset/90 border-2 text-gray-300"
+              <ActionButtons context="cancel" order={order} />
+              <Button
+                className="btn-ghost border-sunset/90 border-2 text-gray-300"
                 onClick={handleModifyClick}
               >
                 Modify
-              </button>
+              </Button>
             </div>
           </div>
         );
@@ -113,37 +107,6 @@ export const SwapModal: React.FC<SwapModalProps> = ({
     }
   };
 
-  const getActionButton = () => {
-    switch (context) {
-      case 'trades':
-        return (
-          <button
-            className="btn btn-ghost border-sunset/90 border-2 text-gray-300"
-            onClick={handleSwap}
-          >
-            Execute Trade
-          </button>
-        );
-      case 'myOrders':
-        return null;
-      case 'inbox':
-        return (
-          <button
-            className="btn btn-ghost border-sunset/90 border-2 text-gray-300"
-            onClick={handleSwap}
-          >
-            Accept
-          </button>
-        );
-      default:
-        return (
-          <button className="btn btn-primary" onClick={handleSwap}>
-            Confirm
-          </button>
-        );
-    }
-  };
-
   return (
     <dialog id={`swap_modal_${index}`} className="modal">
       <div className="modal-box">
@@ -151,21 +114,16 @@ export const SwapModal: React.FC<SwapModalProps> = ({
         {renderContextContent()}
         <div className="modal-action">
           <form method="dialog" className="flex gap-2">
-            <button
-              className="btn btn-circle"
-              onClick={() => closeModal(`swapDetails-${index}` as ModalType)}
+            <Button
+              className="btn-circle"
+              onClick={() => closeModal(`swap_modal_${index}` as ModalType)}
             >
               <CancelIcon />
-            </button>
-            {getActionButton()}
+            </Button>
+            <ActionButtons context={context} order={order} />
           </form>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={() => closeModal(`swapDetails-${index}` as ModalType)}>
-          close
-        </button>
-      </form>
     </dialog>
   );
 };

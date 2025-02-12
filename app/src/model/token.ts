@@ -1,8 +1,11 @@
+import { PublicKey } from '@solana/web3.js';
+
 export interface TokenInfo {
-  symbol?: string;
+  symbol: string;
+  name: string;
+  mint: PublicKey;
   icon?: string;
-  name?: string;
-  mint?: string;
+  decimals?: number;
 }
 
 export type TokenDirectory = {

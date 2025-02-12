@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { TokenList } from '../components/token/token-list';
-import { defaultTokens } from '../utils';
+import { TOKENS, getTokenMintFromSymbol } from '../utils/tokens';
 import { TokenInput } from '../components/token/token-input';
 import { useModal } from '../context/modal-context';
-import { SwapDirectionButton, SwapButton } from '../components/ui/buttons';
+import { SwapDirectionButton } from '../components/ui/buttons';
+import { ActionButtons } from '../components/action-buttons';
+import { BN } from 'bn.js';
+import { getOrderPDA } from '../utils';
+import { PublicKey } from '@solana/web3.js';
+import { Order } from '../model';
 
 export const Swap: React.FC = () => {
   const [fromToken, setFromToken] = useState('SPERG');
   const [toToken, setToToken] = useState('SOL');
   const [fromAmount, setFromAmount] = useState('');
   const [toAmount, setToAmount] = useState('');
-
-  const { openModal, closeModal, isModalOpen } = useModal();
+  const [order, setOrder] = useState<Order | null>(null);
+  const { publicKey } = useWallet();
+  const { openModal, closeModal } = useModal();
 
   const handleSwapTokens = () => {
     if (fromToken === toToken) return;
@@ -21,43 +28,35 @@ export const Swap: React.FC = () => {
     setToAmount(fromAmount);
   };
 
-  const handleSwap = () => {
-    console.log('Swapping:', {
-      fromToken,
-      toToken,
-      fromAmount,
-      toAmount,
-    });
-  };
-
   const isSwapDisabled =
     !fromToken || !toToken || !fromAmount || !toAmount || fromToken === toToken;
 
-  React.useEffect(() => {
-    const fromDialog = document.getElementById(
-      'from_token_modal'
-    ) as HTMLDialogElement;
-    const toDialog = document.getElementById(
-      'to_token_modal'
-    ) as HTMLDialogElement;
-
-    if (isModalOpen('fromTokenSelect')) {
-      fromDialog?.showModal();
-    } else {
-      fromDialog?.close();
+  useEffect(() => {
+    if (!publicKey) {
+      setOrder(null);
+      return;
     }
 
-    if (isModalOpen('toTokenSelect')) {
-      toDialog?.showModal();
-    } else {
-      toDialog?.close();
-    }
-  }, [isModalOpen]);
+    const makerMint = getTokenMintFromSymbol(fromToken);
+    const takerMint = getTokenMintFromSymbol(toToken);
+    const { pda, bump } = getOrderPDA(publicKey, makerMint, takerMint);
+
+    setOrder({
+      id: pda,
+      maker: publicKey,
+      taker: PublicKey.default,
+      makerTokenMint: makerMint,
+      takerTokenMint: takerMint,
+      makerAmount: new BN(fromAmount || '0'),
+      takerAmount: new BN(toAmount || '0'),
+      bump,
+    });
+  }, [publicKey, fromToken, toToken, fromAmount, toAmount]);
 
   return (
     <>
-      <div className="card flex-1 py-16">
-        <div className="card-body flex-1 justify-evenly">
+      <div className="card flex-1 py-16 max-w-sm mx-auto">
+        <div className="card-body flex-1 justify-evenly max-h-120  md:bg-base-300 rounded">
           <TokenInput
             token={fromToken}
             amount={fromAmount}
@@ -76,13 +75,21 @@ export const Swap: React.FC = () => {
             label="buying"
           />
 
-          <SwapButton onClick={handleSwap} disabled={isSwapDisabled} />
+          <div className="w-full mt-4">
+            {order && (
+              <ActionButtons
+                context="create"
+                order={order}
+                disabled={isSwapDisabled}
+              />
+            )}
+          </div>
         </div>
       </div>
 
       <dialog id="from_token_modal" className="modal">
         <TokenList
-          tokens={defaultTokens}
+          tokens={TOKENS}
           onSelect={(token) => {
             setFromToken(token);
             closeModal('fromTokenSelect');
@@ -99,7 +106,7 @@ export const Swap: React.FC = () => {
 
       <dialog id="to_token_modal" className="modal">
         <TokenList
-          tokens={defaultTokens}
+          tokens={TOKENS}
           onSelect={(token) => {
             setToToken(token);
             closeModal('toTokenSelect');

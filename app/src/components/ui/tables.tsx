@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Order, OrderTableProps } from '../../model';
-import { handleOpenModal } from '../../utils';
 import { AddIcon } from './icons';
 import { TokenPair } from '../token/token-pair';
 import { SwapModal } from '../modal';
@@ -30,6 +29,13 @@ export const OrderTable: React.FC<OrderTableComponentProps> = ({
   const [activeTab, setActiveTab] = useState(tabs?.[0]?.id || '');
   const displayedOrders = orders.length > 0 ? orders : defaultOrders;
 
+  const handleOpenModal = (index: number): void => {
+    const modal = document.getElementById(`swap_modal_${index}`);
+    if (modal instanceof HTMLDialogElement) {
+      modal.showModal();
+    }
+  };
+
   const filteredOrders =
     tabs && activeTab
       ? displayedOrders.filter(
@@ -38,7 +44,7 @@ export const OrderTable: React.FC<OrderTableComponentProps> = ({
       : displayedOrders;
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full ${className} max-w-3xl mx-auto md:pt-40`}>
       {/* Render tabs if provided */}
       {tabs && (
         <div className="w-full bg-base-200">
@@ -61,7 +67,7 @@ export const OrderTable: React.FC<OrderTableComponentProps> = ({
 
       {/* Table */}
       <div className="overflow-x-auto w-full">
-        <table className="table w-full table-zebra">
+        <table className="table w-full table-zebra md:bg-base-300">
           <TableHeader />
           <tbody>
             {filteredOrders.map((order, index) => (

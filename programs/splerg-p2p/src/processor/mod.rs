@@ -363,6 +363,8 @@ impl Processor {
 
         let decimals = get_mint_decimals(mint_info)?;
 
+        // TODO: should we allow zero amounts?
+
         match new_maker_amount.cmp(&current_order_amount) {
             std::cmp::Ordering::Greater => {
                 let additional_amount = new_maker_amount - current_order_amount;

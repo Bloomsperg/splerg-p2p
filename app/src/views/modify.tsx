@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate } from 'react-router-dom';
 import { TokenIcon } from '../components/ui/icons';
 import { TokenPair } from '../components/token/token-pair';
 import { formatPubkey, formatTokenAmount } from '../utils';
 import { PublicKey } from '@solana/web3.js';
 import { useProgramContext } from '../context/program-context';
-import { CancelButton } from '../components/ui/buttons';
+import { ActionButtons } from '../components/action-buttons';
 
 export const ModifyView: React.FC = () => {
-  const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
   const { userOrders = [], orders = [] } = useProgramContext();
 
@@ -19,10 +18,14 @@ export const ModifyView: React.FC = () => {
   const [newTakerPubkey, setNewTakerPubkey] = useState('');
   const [newMakerAmount, setNewMakerAmount] = useState(0);
   const [newTakerAmount, setNewTakerAmount] = useState(0);
+  const [currentMakerAmount, setCurrentMakerAmount] = useState('0');
+  const [currentTakerAmount, setCurrentTakerAmount] = useState('0');
 
   useEffect(() => {
     if (order) {
-      setNewMakerAmount(order.makerAmount.toNumber());
+      setCurrentMakerAmount(order.makerAmount.toString());
+      setCurrentTakerAmount(order.takerAmount.toString());
+
       setNewTakerAmount(order.takerAmount.toNumber());
       if (order.taker !== PublicKey.default) {
         setNewTakerPubkey(formatPubkey(order.taker.toString()));
@@ -33,21 +36,6 @@ export const ModifyView: React.FC = () => {
   if (!order) {
     return <Navigate to="/requests" replace />;
   }
-
-  const handleModify = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    try {
-      console.log('Modifying order:', {
-        ...order,
-        makerAmount: newMakerAmount,
-        takerAmount: newTakerAmount,
-        takerPubkey: newTakerPubkey || order.taker,
-      });
-      navigate('/requests');
-    } catch (error) {
-      console.error('Error modifying order:', error);
-    }
-  };
 
   return (
     <div className="w-full px-0 py-0 bg-base-100">
@@ -74,10 +62,10 @@ export const ModifyView: React.FC = () => {
                 </span>
                 <div className=" flex flex-col text-right">
                   <span className="ml-4">
-                    Maker: {formatTokenAmount(order.makerAmount.toString())}
+                    Maker: {formatTokenAmount(currentMakerAmount)}
                   </span>
                   <span className="ml-4">
-                    Taker: {formatTokenAmount(order.makerAmount.toString())}
+                    Taker: {formatTokenAmount(currentTakerAmount)}
                   </span>
                 </div>
               </div>
@@ -102,7 +90,7 @@ export const ModifyView: React.FC = () => {
               </div>
 
               <label className="input input-xl flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
-                <TokenIcon mint={order.makerTokenMint.toBase58()} />
+                <TokenIcon mint={order.makerTokenMint} />
                 <input
                   type="number"
                   value={newMakerAmount}
@@ -126,7 +114,7 @@ export const ModifyView: React.FC = () => {
               </div>
 
               <label className="input input-xl flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
-                <TokenIcon mint={order.takerTokenMint.toBase58()} />
+                <TokenIcon mint={order.takerTokenMint} />
                 <input
                   type="number"
                   value={newTakerAmount}
@@ -158,13 +146,13 @@ export const ModifyView: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex gap-2 w-full px-4">
-          <CancelButton onClick={() => navigate('/requests')} />
-          <button
-            className="btn btn-ghost border-2 border-sunset/90 flex-1"
-            onClick={handleModify}
-          >
-            Confirm
-          </button>
+          <ActionButtons
+            context="modify"
+            order={order}
+            newMakerAmount={newMakerAmount}
+            newTakerAmount={newTakerAmount}
+            newTakerPubkey={newTakerPubkey}
+          />{' '}
         </div>
       </div>
     </div>
