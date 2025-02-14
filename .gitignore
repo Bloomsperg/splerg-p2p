@@ -35,3 +35,5 @@ node_modules
 packages/sdk/**/*.js
 packages/sdk/**/*.js.*
 packages/sdk/**/*.d.ts
+
+packages/sdk/generated

@@ -3,9 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
+    "init-treasury": "ts-node src/scripts/index.ts",
+    "init-mint": "ts-node src/scripts/mint.ts",
+    "init-mint-2022": "ts-node src/scripts/mint.ts",
     "build": "tsc",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
@@ -28,11 +32,13 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.21.0"
   },
+  "peerDependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "@solana/spl-token": "^0.4.12"
+  },
   "dependencies": {
     "@metaplex-foundation/beet": "^0.7.2",
     "@metaplex-foundation/beet-solana": "^0.4.1",
-    "@solana/spl-token": "^0.4.12",
-    "@solana/web3.js": "^1.98.0",
     "borsh": "^2.0.0",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3"

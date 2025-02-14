@@ -46,3 +46,12 @@ export const getTokenInfoFromMint = (
   const mintStr = mint instanceof PublicKey ? mint.toString() : mint;
   return TOKENS.find((token) => token.mint.toString() === mintStr);
 };
+
+export const getTokenSymbolFromMint = (
+  mint: PublicKey | string
+): string => {
+  const mintStr = mint instanceof PublicKey ? mint.toString() : mint;
+  const token = TOKENS.find((token) => token.mint.toString() === mintStr);
+  if (!token) throw new Error(`Unknown token mint: ${mintStr}`);
+  return token.symbol;
+};

@@ -5,7 +5,8 @@
 	  "build": "turbo run build",
 	  "dev": "turbo run dev",
 	  "lint": "turbo run lint",
-	  "format": "turbo run format"
+	  "format": "turbo run format",
+	  "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
 	},
 	"devDependencies": {
 	  "turbo": "latest",

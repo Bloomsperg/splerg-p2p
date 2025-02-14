@@ -1,4 +1,5 @@
 import { TokenInputProps } from '../../model/token';
+import { getTokenSymbolFromMint } from '../../utils/tokens';
 import { TokenIcon } from '../ui/icons';
 
 export const TokenInput: React.FC<TokenInputProps> = ({
@@ -31,7 +32,7 @@ export const TokenInput: React.FC<TokenInputProps> = ({
         className="btn btn-ghost btn-sm"
         onClick={onTokenSelect}
       >
-        {token.toBase58() || 'select'}
+        {getTokenSymbolFromMint(token) || 'select'}
       </button>
     </label>
   </>

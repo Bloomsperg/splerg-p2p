@@ -55,8 +55,8 @@ export const Swap: React.FC = () => {
 
   return (
     <>
-      <div className="card flex-1 py-16 max-w-sm mx-auto">
-        <div className="card-body flex-1 justify-evenly max-h-120  md:bg-base-300 rounded">
+      <div className="card flex-1 md:py-16 max-w-sm mx-auto flex flex-col justify-center">
+        <div className="card-body flex-1 justify-evenly max-h-120  bg-base-300 rounded-xl">
           <TokenInput
             token={getTokenMintFromSymbol(fromToken)}
             amount={fromAmount}

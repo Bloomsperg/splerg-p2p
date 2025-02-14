@@ -5,7 +5,7 @@ import {
   createChangeTakerInstruction,
   createCloseOrderInstruction,
   createCompleteSwapInstruction,
-} from '@splerg/sdk';
+} from '../instructions';
 import { useSendAndConfirm } from './useSendAndConfirm';
 import BN from 'bn.js';
 

@@ -1,4 +1,3 @@
-// App.tsx
 import { useMemo } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import {
@@ -14,8 +13,12 @@ import { ProgramProvider } from './context/program-context';
 import { ModalProvider } from './context/modal-context';
 
 function App() {
-  const endpoint = 'http://0.0.0.0:8899';
+  const endpoint = import.meta.env.VITE_SOLANA_RPC_ENDPOINT;
   const wallets = useMemo(() => [], []);
+
+  if (!endpoint) {
+    throw new Error('Missing VITE_SOLANA_RPC_ENDPOINT environment variable');
+  }
 
   return (
     <BrowserRouter>
