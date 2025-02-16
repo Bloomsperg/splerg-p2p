@@ -1,4 +1,4 @@
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
   createInitializeOrderInstruction,
   createChangeOrderAmountsInstruction,
@@ -8,9 +8,10 @@ import {
 } from '../instructions';
 import { useSendAndConfirm } from './useSendAndConfirm';
 import BN from 'bn.js';
+import { getCreateATAInstructionsIfNeeded } from '../utils/tokens';
 
 export const useOrderMutations = () => {
-  const { sendAndConfirmTransaction, loading, error, publicKey } =
+  const { sendAndConfirmTransaction, loading, error, publicKey, connection } =
     useSendAndConfirm();
 
   const initializeOrder = async (params: {
@@ -24,7 +25,35 @@ export const useOrderMutations = () => {
   }) => {
     if (!publicKey) throw new Error('Wallet not connected');
 
-    const instruction = createInitializeOrderInstruction(
+    const instructions: TransactionInstruction[] = [];
+
+    console.log(connection);
+
+    // Create ATAs if needed
+    const [makerAtaIx, pdaMakerAtaIx] = await Promise.all([
+      getCreateATAInstructionsIfNeeded(
+        connection,
+        publicKey,
+        publicKey,
+        params.makerMint
+      ),
+      getCreateATAInstructionsIfNeeded(
+        connection,
+        publicKey,
+        params.order,
+        params.makerMint,
+        true
+      ),
+    ]);
+
+    // Add ATA creation instructions if needed
+    if (makerAtaIx) instructions.push(makerAtaIx);
+    if (pdaMakerAtaIx) instructions.push(pdaMakerAtaIx);
+
+    console.log(instructions.length);
+
+    // Create and add the initialize order instruction
+    const initOrderIx = createInitializeOrderInstruction(
       {
         maker: publicKey,
         order: params.order,
@@ -38,8 +67,9 @@ export const useOrderMutations = () => {
         takerAmount: params.takerAmount,
       }
     );
+    instructions.push(initOrderIx);
 
-    return sendAndConfirmTransaction(instruction);
+    return sendAndConfirmTransaction(instructions);
   };
 
   const changeOrderAmounts = async (params: {
@@ -66,7 +96,7 @@ export const useOrderMutations = () => {
       }
     );
 
-    return sendAndConfirmTransaction(instruction);
+    return sendAndConfirmTransaction([instruction]);
   };
 
   const changeTaker = async (params: {
@@ -86,7 +116,7 @@ export const useOrderMutations = () => {
       }
     );
 
-    return sendAndConfirmTransaction(instruction);
+    return sendAndConfirmTransaction([instruction]);
   };
 
   const closeOrder = async (params: { order: PublicKey }) => {
@@ -97,7 +127,7 @@ export const useOrderMutations = () => {
       order: params.order,
     });
 
-    return sendAndConfirmTransaction(instruction);
+    return sendAndConfirmTransaction([instruction]);
   };
 
   const completeSwap = async (params: {
@@ -124,7 +154,7 @@ export const useOrderMutations = () => {
       tokenAuthority: params.tokenAuthority,
     });
 
-    return sendAndConfirmTransaction(instruction);
+    return sendAndConfirmTransaction([instruction]);
   };
 
   return {

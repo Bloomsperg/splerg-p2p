@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { TokenList } from '../components/token/token-list';
-import { TOKENS, getTokenMintFromSymbol } from '../utils/tokens';
+import {
+  TOKENS,
+  getTokenDecimalsFromMint,
+  getTokenMintFromSymbol,
+  scaleAmount,
+} from '../utils/tokens';
 import { TokenInput } from '../components/token/token-input';
 import { useModal } from '../context/modal-context';
 import { SwapDirectionButton } from '../components/ui/buttons';
 import { ActionButtons } from '../components/action-buttons';
-import { BN } from 'bn.js';
 import { getOrderPDA } from '../utils';
 import { PublicKey } from '@solana/web3.js';
 import { Order } from '../model';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export const Swap: React.FC = () => {
-  const [fromToken, setFromToken] = useState('SPERG');
-  const [toToken, setToToken] = useState('SOL');
+  const [fromToken, setFromToken] = useState('TOKA');
+  const [toToken, setToToken] = useState('TOKB');
   const [fromAmount, setFromAmount] = useState('');
   const [toAmount, setToAmount] = useState('');
   const [order, setOrder] = useState<Order | null>(null);
@@ -40,6 +45,8 @@ export const Swap: React.FC = () => {
     const makerMint = getTokenMintFromSymbol(fromToken);
     const takerMint = getTokenMintFromSymbol(toToken);
     const { pda, bump } = getOrderPDA(publicKey, makerMint, takerMint);
+    const makerDecimals = getTokenDecimalsFromMint(makerMint);
+    const takerDecimals = getTokenDecimalsFromMint(takerMint);
 
     setOrder({
       id: pda,
@@ -47,8 +54,8 @@ export const Swap: React.FC = () => {
       taker: PublicKey.default,
       makerTokenMint: makerMint,
       takerTokenMint: takerMint,
-      makerAmount: new BN(fromAmount || '0'),
-      takerAmount: new BN(toAmount || '0'),
+      makerAmount: scaleAmount(fromAmount, makerDecimals ? makerDecimals : 9),
+      takerAmount: scaleAmount(toAmount, takerDecimals ? takerDecimals : 9),
       bump,
     });
   }, [publicKey, fromToken, toToken, fromAmount, toAmount]);
@@ -75,7 +82,8 @@ export const Swap: React.FC = () => {
             label="buying"
           />
 
-          <div className="w-full mt-4">
+          <div className="w-full mt-4 mx-auto">
+            {!order && <WalletMultiButton />}
             {order && (
               <ActionButtons
                 context="create"
@@ -87,7 +95,7 @@ export const Swap: React.FC = () => {
         </div>
       </div>
 
-      <dialog id="from_token_modal" className="modal">
+      <dialog id="fromTokenSelect" className="modal">
         <TokenList
           tokens={TOKENS}
           onSelect={(token) => {
@@ -96,7 +104,7 @@ export const Swap: React.FC = () => {
           }}
           currentToken={fromToken}
           otherToken={toToken}
-          modalId="from_token_modal"
+          modalId="fromTokenSelect"
           modalType="fromTokenSelect"
         />
         <form method="dialog" className="modal-backdrop">
@@ -104,7 +112,7 @@ export const Swap: React.FC = () => {
         </form>
       </dialog>
 
-      <dialog id="to_token_modal" className="modal">
+      <dialog id="toTokenSelect" className="modal">
         <TokenList
           tokens={TOKENS}
           onSelect={(token) => {
@@ -113,7 +121,7 @@ export const Swap: React.FC = () => {
           }}
           currentToken={toToken}
           otherToken={fromToken}
-          modalId="to_token_modal"
+          modalId="toTokenSelect"
           modalType="toTokenSelect"
         />
         <form method="dialog" className="modal-backdrop">

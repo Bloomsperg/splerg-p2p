@@ -13,12 +13,15 @@ export function formatTokenAmount(
   amount: string,
   decimals: number = 9
 ): string {
-  const amountBigInt = BigInt(amount.toString());
-  const scaleFactor = BigInt(10) ** BigInt(decimals);
-  const actualAmount = Number(amountBigInt) / Number(scaleFactor);
+  // Convert the amount to a number first
+  const rawAmount = parseFloat(amount);
+
+  // Calculate the actual amount by dividing by the scale factor
+  const scaleFactor = Math.pow(10, decimals);
+  const actualAmount = rawAmount / scaleFactor;
 
   if (actualAmount === 0) return '0';
-  if (Math.abs(actualAmount) < 1) return Math.floor(actualAmount).toString();
+  if (Math.abs(actualAmount) < 1) return actualAmount.toFixed(4);
 
   const suffixes = ['', 'K', 'M', 'B', 'T'];
   const tier = Math.min(
@@ -27,13 +30,22 @@ export function formatTokenAmount(
   );
 
   if (tier === 0) {
-    return Math.floor(actualAmount).toString();
+    if (actualAmount % 1 === 0) {
+      return actualAmount.toString();
+    }
+    return actualAmount.toFixed(2);
   }
 
   const scale = Math.pow(10, tier * 3);
   const scaled = actualAmount / scale;
-  const rounded = Math.round(scaled * 10) / 10;
 
+  // If the scaled number is exactly an integer, don't show decimals
+  if (scaled % 1 === 0) {
+    return `${scaled}${suffixes[tier]}`;
+  }
+
+  // Otherwise round to one decimal place
+  const rounded = Math.floor(scaled * 10) / 10;
   return `${rounded}${suffixes[tier]}`;
 }
 

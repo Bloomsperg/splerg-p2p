@@ -6,6 +6,10 @@ import { useOrderMutations } from '../hooks/useOrderMutations';
 import { PublicKey } from '@solana/web3.js';
 import { useNavigate } from 'react-router-dom';
 import BN from 'bn.js';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { getOrderPDA } from '../utils';
+import { useProgramContext } from '../context/program-context';
+import { TOKENS } from '../utils/tokens';
 
 interface Order {
   id: PublicKey;
@@ -45,6 +49,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     loading,
   } = useOrderMutations();
   const navigate = useNavigate();
+  const { getBalance } = useProgramContext();
 
   if (!publicKey) {
     return <WalletMultiButton />;
@@ -71,10 +76,43 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   const handleCreate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    const orderPDA = getOrderPDA(
+      publicKey,
+      order.makerTokenMint,
+      order.takerTokenMint
+    );
+
+    const makerAta = getAssociatedTokenAddressSync(
+      order.makerTokenMint,
+      publicKey
+    );
+    const pdaMakerAta = getAssociatedTokenAddressSync(
+      order.makerTokenMint,
+      orderPDA.pda,
+      true
+    );
+
+    const tokenBalance = getBalance(order.makerTokenMint);
+    if (tokenBalance === undefined) {
+      throw new Error('Failed to fetch token balance');
+    }
+
+    const tokenDecimals =
+      TOKENS.find((t) => t.mint.equals(order.makerTokenMint))?.decimals || 0;
+    const requiredAmount =
+      Number(order.makerAmount) / Math.pow(10, tokenDecimals);
+
+    if (tokenBalance < requiredAmount) {
+      throw new Error(
+        `Insufficient balance. Required: ${requiredAmount}, Available: ${tokenBalance}`
+      );
+    }
+
     await initializeOrder({
       order: order.id,
-      makerAta: publicKey,
-      pdaMakerAta: order.id,
+      makerAta,
+      pdaMakerAta,
       makerMint: order.makerTokenMint,
       takerMint: order.takerTokenMint,
       makerAmount: new BN(order.makerAmount.toString()),
@@ -115,10 +153,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           newTakerAmount !== order.takerAmount.toNumber());
 
       if (amountsChanged) {
-        let newMA = newMakerAmount
+        const newMA = newMakerAmount
           ? new BN(newMakerAmount)
           : new BN(order.makerAmount.toString());
-        let newTA = newTakerAmount
+        const newTA = newTakerAmount
           ? new BN(newTakerAmount)
           : new BN(order.takerAmount.toString());
 

@@ -6,6 +6,7 @@ export interface TokenInfo {
   mint: PublicKey;
   icon?: string;
   decimals?: number;
+  is2022?: boolean;
 }
 
 export type TokenDirectory = {

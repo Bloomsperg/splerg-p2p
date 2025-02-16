@@ -13,7 +13,7 @@ export const useSendAndConfirm = () => {
   const [error, setError] = useState<string | null>(null);
 
   const sendAndConfirmTransaction = async (
-    instruction: TransactionInstruction
+    instructions: TransactionInstruction[]
   ): Promise<string> => {
     if (!publicKey || !signTransaction) throw new Error('Wallet not connected');
 
@@ -25,7 +25,7 @@ export const useSendAndConfirm = () => {
       const message = new TransactionMessage({
         payerKey: publicKey,
         recentBlockhash: blockhash,
-        instructions: [instruction],
+        instructions: instructions,
       }).compileToV0Message();
 
       const transaction = new VersionedTransaction(message);
@@ -51,5 +51,6 @@ export const useSendAndConfirm = () => {
     loading,
     error,
     publicKey,
+    connection,
   };
 };
