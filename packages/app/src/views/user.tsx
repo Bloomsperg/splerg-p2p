@@ -2,33 +2,30 @@ import { useProgramContext } from '../context/program-context';
 import { LoadingState, EmptyState } from '../components/ui/states';
 import { OrderTable } from '../components/ui/tables';
 import { OrderTableProps, Order } from '../model';
-import { MY_WALLET } from '../utils';
-import { mockOrders } from '../utils/orders';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export const InboxTable: React.FC<OrderTableProps> = ({ orders = [] }) => {
+  const { publicKey } = useWallet();
+
+  if (!publicKey) return <WalletMultiButton />;
+
   const inboxTabs = [
     {
       id: 'myOrders',
       label: 'Active',
       filterFn: (order: Order) =>
-        order.taker.toBase58() === MY_WALLET.toBase58(),
+        order.maker.toBase58() === publicKey.toBase58(),
     },
     {
       id: 'inbox',
       label: 'Inbox',
       filterFn: (order: Order) =>
-        order.maker.toBase58() === MY_WALLET.toBase58(),
+        order.taker.toBase58() === publicKey.toBase58(),
     },
   ];
 
-  return (
-    <OrderTable
-      orders={orders}
-      defaultOrders={mockOrders}
-      tabs={inboxTabs}
-      modalContext=""
-    />
-  );
+  return <OrderTable orders={orders} tabs={inboxTabs} modalContext="" />;
 };
 
 export const UserView = () => {

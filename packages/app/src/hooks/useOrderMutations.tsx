@@ -27,8 +27,6 @@ export const useOrderMutations = () => {
 
     const instructions: TransactionInstruction[] = [];
 
-    console.log(connection);
-
     // Create ATAs if needed
     const [makerAtaIx, pdaMakerAtaIx] = await Promise.all([
       getCreateATAInstructionsIfNeeded(
@@ -49,8 +47,6 @@ export const useOrderMutations = () => {
     // Add ATA creation instructions if needed
     if (makerAtaIx) instructions.push(makerAtaIx);
     if (pdaMakerAtaIx) instructions.push(pdaMakerAtaIx);
-
-    console.log(instructions.length);
 
     // Create and add the initialize order instruction
     const initOrderIx = createInitializeOrderInstruction(
@@ -132,29 +128,79 @@ export const useOrderMutations = () => {
 
   const completeSwap = async (params: {
     order: PublicKey;
-    makerReceivingAccount: PublicKey;
-    takerSendingAccount: PublicKey;
-    takerReceivingAccount: PublicKey;
-    escrowTokenAccount: PublicKey;
+    makerTakerAta: PublicKey; // maker's ATA for taker's token
+    takerAta: PublicKey; // taker's ATA for taker's token
+    takerMakerAta: PublicKey; // taker's ATA for maker's token
+    orderMakerAta: PublicKey; // order's ATA for maker's token
+    treasury: PublicKey; // treasury account
+    treasuryMakerAta: PublicKey; // treasury's ATA for maker's token
+    treasuryTakerAta: PublicKey; // treasury's ATA for taker's token
     makerMint: PublicKey;
     takerMint: PublicKey;
-    tokenAuthority: PublicKey;
   }) => {
     if (!publicKey) throw new Error('Wallet not connected');
 
-    const instruction = createCompleteSwapInstruction({
+    const instructions: TransactionInstruction[] = [];
+
+    // Check and create ATAs if needed
+    const [
+      takerMakerAtaIx, // Taker's ATA for maker's token
+      takerTakerAtaIx, // Taker's ATA for taker's token
+      treasuryMakerAtaIx, // Treasury's ATA for maker's token
+      treasuryTakerAtaIx, // Treasury's ATA for taker's token
+    ] = await Promise.all([
+      getCreateATAInstructionsIfNeeded(
+        connection,
+        publicKey,
+        publicKey,
+        params.makerMint
+      ),
+      getCreateATAInstructionsIfNeeded(
+        connection,
+        publicKey,
+        publicKey,
+        params.takerMint
+      ),
+      getCreateATAInstructionsIfNeeded(
+        connection,
+        publicKey,
+        params.treasury,
+        params.makerMint,
+        true
+      ),
+      getCreateATAInstructionsIfNeeded(
+        connection,
+        publicKey,
+        params.treasury,
+        params.takerMint,
+        true
+      ),
+    ]);
+
+    // Add ATA creation instructions if needed
+    if (takerMakerAtaIx) instructions.push(takerMakerAtaIx);
+    if (takerTakerAtaIx) instructions.push(takerTakerAtaIx);
+    if (treasuryMakerAtaIx) instructions.push(treasuryMakerAtaIx);
+    if (treasuryTakerAtaIx) instructions.push(treasuryTakerAtaIx);
+
+    // Create and add the complete swap instruction
+    const completeSwapIx = createCompleteSwapInstruction({
       taker: publicKey,
       order: params.order,
-      makerReceivingAccount: params.makerReceivingAccount,
-      takerSendingAccount: params.takerSendingAccount,
-      takerReceivingAccount: params.takerReceivingAccount,
-      escrowTokenAccount: params.escrowTokenAccount,
+      makerTakerAta: params.makerTakerAta,
+      takerAta: params.takerAta,
+      takerMakerAta: params.takerMakerAta,
+      orderMakerAta: params.orderMakerAta,
+      treasury: params.treasury,
+      treasuryMakerAta: params.treasuryMakerAta,
+      treasuryTakerAta: params.treasuryTakerAta,
       makerMint: params.makerMint,
       takerMint: params.takerMint,
-      tokenAuthority: params.tokenAuthority,
     });
 
-    return sendAndConfirmTransaction([instruction]);
+    instructions.push(completeSwapIx);
+
+    return sendAndConfirmTransaction(instructions);
   };
 
   return {

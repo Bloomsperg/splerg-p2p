@@ -74,8 +74,8 @@ export const OrderTable: React.FC<OrderTableComponentProps> = ({
               <tr key={`row-${index}`} className="hover:bg-base-300">
                 <td className="px-4 py-4 text-left flex">
                   <TokenPair
-                    makerMint={order.makerTokenMint}
-                    takerMint={order.takerTokenMint}
+                    makerMint={order.makerToken}
+                    takerMint={order.takerToken}
                     makerAmount={order.makerAmount.toString()}
                     takerAmount={order.takerAmount.toString()}
                   />

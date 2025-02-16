@@ -4,7 +4,7 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Buffer } from 'buffer';
 import BN from 'bn.js';
 
@@ -187,14 +187,15 @@ export function createCloseOrderInstruction(
 interface CompleteSwapAccounts {
   taker: PublicKey;
   order: PublicKey;
-  makerReceivingAccount: PublicKey;
-  takerSendingAccount: PublicKey;
-  takerReceivingAccount: PublicKey;
-  escrowTokenAccount: PublicKey;
+  makerTakerAta: PublicKey;
+  takerAta: PublicKey;
+  takerMakerAta: PublicKey;
+  orderMakerAta: PublicKey;
+  treasury: PublicKey;
+  treasuryMakerAta: PublicKey;
+  treasuryTakerAta: PublicKey;
   makerMint: PublicKey;
   takerMint: PublicKey;
-  tokenProgram?: PublicKey;
-  tokenAuthority: PublicKey;
 }
 
 export function createCompleteSwapInstruction(
@@ -207,26 +208,17 @@ export function createCompleteSwapInstruction(
   const keys = [
     { pubkey: accounts.taker, isWritable: false, isSigner: true },
     { pubkey: accounts.order, isWritable: true, isSigner: false },
-    {
-      pubkey: accounts.makerReceivingAccount,
-      isWritable: true,
-      isSigner: false,
-    },
-    { pubkey: accounts.takerSendingAccount, isWritable: true, isSigner: false },
-    {
-      pubkey: accounts.takerReceivingAccount,
-      isWritable: true,
-      isSigner: false,
-    },
-    { pubkey: accounts.escrowTokenAccount, isWritable: true, isSigner: false },
+    { pubkey: accounts.makerTakerAta, isWritable: true, isSigner: false },
+    { pubkey: accounts.takerAta, isWritable: true, isSigner: false },
+    { pubkey: accounts.takerMakerAta, isWritable: true, isSigner: false },
+    { pubkey: accounts.orderMakerAta, isWritable: true, isSigner: false },
+    { pubkey: accounts.treasury, isWritable: false, isSigner: false },
+    { pubkey: accounts.treasuryMakerAta, isWritable: true, isSigner: false },
+    { pubkey: accounts.treasuryTakerAta, isWritable: true, isSigner: false },
     { pubkey: accounts.makerMint, isWritable: false, isSigner: false },
     { pubkey: accounts.takerMint, isWritable: false, isSigner: false },
-    {
-      pubkey: accounts.tokenProgram ?? TOKEN_PROGRAM_ID,
-      isWritable: false,
-      isSigner: false,
-    },
-    { pubkey: accounts.tokenAuthority, isWritable: false, isSigner: false },
+    { pubkey: TOKEN_PROGRAM_ID, isWritable: false, isSigner: false },
+    { pubkey: TOKEN_2022_PROGRAM_ID, isWritable: false, isSigner: false },
   ];
 
   return new TransactionInstruction({

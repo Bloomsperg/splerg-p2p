@@ -8,7 +8,9 @@ export const Dashboard: React.FC<{}> = () => {
   const showTabs = !location.pathname.includes('/modify');
 
   return (
-    <div className="flex flex-1 flex-col h-full w-full justify-between">
+    <div
+      className={`flex flex-1 flex-col h-full w-full ${showTabs ? 'justify-between' : 'justify-center'}`}
+    >
       {element}
       {showTabs && (
         <nav className="tabs tabs-lift tabs-lg justify-end border-t border-t-sunset/50 bg-base-200 sm:hidden">

@@ -14,6 +14,7 @@ import {
   Account,
 } from '@solana/spl-token';
 import { TOKENS } from '../utils/tokens';
+import { fetchProgramAccounts } from '../utils/orders';
 
 interface ProgramState {
   conn: Connection | null;
@@ -51,7 +52,7 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { connection } = useConnection();
-  const { publicKey, connected } = useWallet();
+  const { publicKey } = useWallet();
   const [state, setState] = useState<ProgramState>(initialState);
 
   const fetchConnection = useCallback((): Connection => {
@@ -69,26 +70,32 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
     return state.conn;
   }, [connection, state.conn]);
 
-  const fetchOrders = useCallback(async (owner?: PublicKey) => {
-    try {
-      setState((prev) => ({
-        ...prev,
-        [owner ? 'userLoading' : 'loading']: true,
-      }));
+  const fetchOrders = useCallback(
+    async (owner?: PublicKey) => {
+      if (!state.conn) return;
+      try {
+        setState((prev) => ({
+          ...prev,
+          [owner ? 'userLoading' : 'loading']: true,
+        }));
 
-      setState((prev) => ({
-        ...prev,
-        [owner ? 'userOrders' : 'orders']: mappedOrders,
-        [owner ? 'userLoading' : 'loading']: false,
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        [owner ? 'userLoading' : 'loading']: false,
-      }));
-      console.error('Failed to fetch orders:', error);
-    }
-  }, []);
+        const orders = await fetchProgramAccounts(state.conn, owner);
+
+        setState((prev) => ({
+          ...prev,
+          [owner ? 'userOrders' : 'orders']: orders,
+          [owner ? 'userLoading' : 'loading']: false,
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          [owner ? 'userLoading' : 'loading']: false,
+        }));
+        console.error('Failed to fetch orders:', error);
+      }
+    },
+    [state.conn]
+  );
 
   const addOrder = useCallback(
     async (order: Order) => {
@@ -157,29 +164,21 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const conn = fetchConnection();
-    if (conn) {
+    setState((prev) => ({ ...prev, conn }));
+  }, []);
+
+  useEffect(() => {
+    if (state.conn) {
       fetchOrders();
     }
-  }, [fetchConnection, fetchOrders]);
+  }, [state.conn]);
 
   useEffect(() => {
-    const conn = fetchConnection();
-    if (conn && publicKey) {
+    if (state.conn && publicKey) {
       fetchOrders(publicKey);
-    }
-  }, [fetchConnection, publicKey, fetchOrders]);
-
-  useEffect(() => {
-    const conn = fetchConnection();
-    if (conn && publicKey) {
       fetchTokenBalances();
     }
-  }, [fetchConnection, publicKey, fetchTokenBalances]);
-
-  // Update connected state
-  useEffect(() => {
-    setState((prev) => ({ ...prev, connected }));
-  }, [connected]);
+  }, [publicKey, state.conn]);
 
   const contextValue: ProgramContextType = {
     ...state,

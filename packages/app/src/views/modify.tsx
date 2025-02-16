@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { TokenIcon } from '../components/ui/icons';
 import { TokenPair } from '../components/token/token-pair';
-import { formatPubkey, formatTokenAmount } from '../utils';
+import { formatPubkey } from '../utils';
 import { PublicKey } from '@solana/web3.js';
 import { useProgramContext } from '../context/program-context';
 import { ActionButtons } from '../components/action-buttons';
@@ -16,18 +16,12 @@ export const ModifyView: React.FC = () => {
   );
 
   const [newTakerPubkey, setNewTakerPubkey] = useState('');
-  const [newMakerAmount, setNewMakerAmount] = useState(0);
-  const [newTakerAmount, setNewTakerAmount] = useState(0);
-  const [currentMakerAmount, setCurrentMakerAmount] = useState('0');
-  const [currentTakerAmount, setCurrentTakerAmount] = useState('0');
+  const [newMakerAmount, setNewMakerAmount] = useState(0.0);
+  const [newTakerAmount, setNewTakerAmount] = useState(0.0);
 
   useEffect(() => {
     if (order) {
-      setCurrentMakerAmount(order.makerAmount.toString());
-      setCurrentTakerAmount(order.takerAmount.toString());
-
-      setNewTakerAmount(order.takerAmount.toNumber());
-      if (order.taker !== PublicKey.default) {
+      if (order.taker.toBase58() !== PublicKey.default.toBase58()) {
         setNewTakerPubkey(formatPubkey(order.taker.toString()));
       }
     }
@@ -38,16 +32,16 @@ export const ModifyView: React.FC = () => {
   }
 
   return (
-    <div className="w-full px-0 py-0 bg-base-100">
-      <div className="py-4 px-4 space-y-6">
+    <div className="w-full px-0 py-0">
+      <div className="py-12 px-4 space-y-6 max-w-lg mx-auto md:bg-base-300 rounded-2xl">
         {/* Current Swap */}
         <div>
           <h4 className="text text-sunset/95 mb-2">Current Swap</h4>
           <div className="bg-base-200 p-4 rounded-lg">
             <div className="flex items-center justify-center mb-4">
               <TokenPair
-                makerMint={order.makerTokenMint}
-                takerMint={order.takerTokenMint}
+                makerMint={order.makerToken}
+                takerMint={order.takerToken}
                 makerAmount={order.makerAmount.toString()}
                 takerAmount={order.takerAmount.toString()}
               />
@@ -56,18 +50,10 @@ export const ModifyView: React.FC = () => {
               <div className="flex justify-between items-start pb-1">
                 <span>
                   Recipient:{' '}
-                  {order.taker == PublicKey.default
-                    ? 'open'
+                  {order.taker.toBase58() == PublicKey.default.toBase58()
+                    ? 'public'
                     : formatPubkey(order.taker.toString())}
                 </span>
-                <div className=" flex flex-col text-right">
-                  <span className="ml-4">
-                    Maker: {formatTokenAmount(currentMakerAmount)}
-                  </span>
-                  <span className="ml-4">
-                    Taker: {formatTokenAmount(currentTakerAmount)}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -81,16 +67,10 @@ export const ModifyView: React.FC = () => {
             <div>
               <div className="p text-ghost flex justify-between">
                 <div>Deposit</div>
-                <div className="text-[8px]">
-                  <span className="text-sunset text-xs">
-                    {formatTokenAmount(order.makerAmount.toString())}
-                  </span>{' '}
-                  available
-                </div>
               </div>
 
-              <label className="input input-xl flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
-                <TokenIcon mint={order.makerTokenMint} />
+              <label className="input input-xl w-full flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
+                <TokenIcon mint={order.makerToken} />
                 <input
                   type="number"
                   value={newMakerAmount}
@@ -105,16 +85,10 @@ export const ModifyView: React.FC = () => {
             <div className="mt-4">
               <div className="p text-ghost flex justify-between">
                 <div>Receive</div>
-                <div className="text-[8px]">
-                  <span className="text-sunset text-xs">
-                    {formatTokenAmount(order.takerAmount.toString())}
-                  </span>{' '}
-                  current
-                </div>
               </div>
 
-              <label className="input input-xl flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
-                <TokenIcon mint={order.takerTokenMint} />
+              <label className="input input-xl w-full flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
+                <TokenIcon mint={order.takerToken} />
                 <input
                   type="number"
                   value={newTakerAmount}
@@ -131,10 +105,10 @@ export const ModifyView: React.FC = () => {
                 <div>Recipient</div>
               </div>
 
-              <label className="input input-xl flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
+              <label className="input input-xl w-full flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
                 <input
                   type="text"
-                  placeholder={formatPubkey(order.taker.toString())}
+                  placeholder="new recipient"
                   value={newTakerPubkey}
                   onChange={(e) => setNewTakerPubkey(e.target.value)}
                   className="grow"

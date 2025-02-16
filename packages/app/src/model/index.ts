@@ -5,8 +5,8 @@ export interface Order {
   id: PublicKey;
   maker: PublicKey;
   taker: PublicKey;
-  makerTokenMint: PublicKey;
-  takerTokenMint: PublicKey;
+  makerToken: PublicKey;
+  takerToken: PublicKey;
   makerAmount: BN;
   takerAmount: BN;
   bump: number;

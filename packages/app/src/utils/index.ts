@@ -67,17 +67,11 @@ export const getOrderPDA = (
   return { pda, bump };
 };
 
-// Mock wallet for testing
-export const MY_WALLET = new PublicKey(
-  'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH'
-);
+export const getTreasuryPDA = (): { pda: PublicKey; bump: number } => {
+  const [pda, bump] = PublicKey.findProgramAddressSync(
+    [Buffer.from('treasury')],
+    PROGRAM_ID
+  );
 
-export const USDC_MINT = new PublicKey(
-  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-);
-export const SOL_MINT = new PublicKey(
-  'So11111111111111111111111111111111111111112'
-);
-export const BONK_MINT = new PublicKey(
-  'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
-);
+  return { pda, bump };
+};

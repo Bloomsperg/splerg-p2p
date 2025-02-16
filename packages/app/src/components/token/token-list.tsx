@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TokenIcon } from '../ui/icons';
 import { TokenInfo } from '../../model/token';
 import { useModal } from '../../context/modal-context';
@@ -18,17 +18,7 @@ export const TokenList: React.FC<TokenListProps> = ({
   otherToken,
   modalType,
 }) => {
-  const [customMint, setCustomMint] = useState('');
   const { closeModal } = useModal();
-
-  const handleSubmitCustomMint = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (customMint && customMint !== otherToken) {
-      onSelect(customMint);
-      setCustomMint('');
-      closeModal(modalType);
-    }
-  };
 
   return (
     <div className="modal-box">
@@ -41,9 +31,7 @@ export const TokenList: React.FC<TokenListProps> = ({
         </button>
       </form>
 
-      <h3 className="font-bold text-lg mb-4">Select Token</h3>
-
-      <form onSubmit={handleSubmitCustomMint} className="mb-4">
+      {/* <form onSubmit={handleSubmitCustomMint} className="mb-4">
         <label className="input input-bordered flex items-center gap-2">
           <input
             type="text"
@@ -60,9 +48,9 @@ export const TokenList: React.FC<TokenListProps> = ({
             Add
           </button>
         </label>
-      </form>
+      </form> */}
 
-      <div className="divider">or choose token</div>
+      <div className="divider">choose token</div>
 
       <div className="flex flex-col gap-2">
         {tokens.map((token) => (

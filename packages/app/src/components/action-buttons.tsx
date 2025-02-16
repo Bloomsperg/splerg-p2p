@@ -7,20 +7,10 @@ import { PublicKey } from '@solana/web3.js';
 import { useNavigate } from 'react-router-dom';
 import BN from 'bn.js';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
-import { getOrderPDA } from '../utils';
+import { getOrderPDA, getTreasuryPDA } from '../utils';
 import { useProgramContext } from '../context/program-context';
 import { TOKENS } from '../utils/tokens';
-
-interface Order {
-  id: PublicKey;
-  maker: PublicKey;
-  taker: PublicKey;
-  makerTokenMint: PublicKey;
-  takerTokenMint: PublicKey;
-  makerAmount: BN;
-  takerAmount: BN;
-  bump: number;
-}
+import { Order } from '../model';
 
 interface ActionButtonsProps {
   context: string;
@@ -57,15 +47,55 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   const handleSwap = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    const treasuryPDA = getTreasuryPDA();
+
+    // Maker's ATA for taker's token (where maker will receive taker's tokens)
+    const makerTakerAta = getAssociatedTokenAddressSync(
+      order.takerToken,
+      order.maker
+    );
+
+    // Taker's ATA for taker's token (where taker's tokens come from)
+    const takerAta = getAssociatedTokenAddressSync(order.takerToken, publicKey);
+
+    // Taker's ATA for maker's token (where taker will receive maker's tokens)
+    const takerMakerAta = getAssociatedTokenAddressSync(
+      order.makerToken,
+      publicKey
+    );
+
+    // Order's ATA for maker's token (escrow account)
+    const orderMakerAta = getAssociatedTokenAddressSync(
+      order.makerToken,
+      order.id,
+      true
+    );
+
+    // Treasury's ATAs
+    const treasuryMakerAta = getAssociatedTokenAddressSync(
+      order.makerToken,
+      treasuryPDA.pda,
+      true
+    );
+
+    const treasuryTakerAta = getAssociatedTokenAddressSync(
+      order.takerToken,
+      treasuryPDA.pda,
+      true
+    );
+
     await completeSwap({
       order: order.id,
-      makerReceivingAccount: order.maker,
-      takerSendingAccount: publicKey,
-      takerReceivingAccount: publicKey,
-      escrowTokenAccount: order.id,
-      makerMint: order.makerTokenMint,
-      takerMint: order.takerTokenMint,
-      tokenAuthority: order.maker,
+      makerTakerAta,
+      takerAta,
+      takerMakerAta,
+      orderMakerAta,
+      treasury: treasuryPDA.pda,
+      treasuryMakerAta,
+      treasuryTakerAta,
+      makerMint: order.makerToken,
+      takerMint: order.takerToken,
     });
   };
 
@@ -77,29 +107,22 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const handleCreate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    const orderPDA = getOrderPDA(
-      publicKey,
-      order.makerTokenMint,
-      order.takerTokenMint
-    );
+    const orderPDA = getOrderPDA(publicKey, order.makerToken, order.takerToken);
 
-    const makerAta = getAssociatedTokenAddressSync(
-      order.makerTokenMint,
-      publicKey
-    );
+    const makerAta = getAssociatedTokenAddressSync(order.makerToken, publicKey);
     const pdaMakerAta = getAssociatedTokenAddressSync(
-      order.makerTokenMint,
+      order.makerToken,
       orderPDA.pda,
       true
     );
 
-    const tokenBalance = getBalance(order.makerTokenMint);
+    const tokenBalance = getBalance(order.makerToken);
     if (tokenBalance === undefined) {
       throw new Error('Failed to fetch token balance');
     }
 
     const tokenDecimals =
-      TOKENS.find((t) => t.mint.equals(order.makerTokenMint))?.decimals || 0;
+      TOKENS.find((t) => t.mint.equals(order.makerToken))?.decimals || 0;
     const requiredAmount =
       Number(order.makerAmount) / Math.pow(10, tokenDecimals);
 
@@ -113,8 +136,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       order: order.id,
       makerAta,
       pdaMakerAta,
-      makerMint: order.makerTokenMint,
-      takerMint: order.takerTokenMint,
+      makerMint: order.makerToken,
+      takerMint: order.takerToken,
       makerAmount: new BN(order.makerAmount.toString()),
       takerAmount: new BN(order.takerAmount.toString()),
     });
@@ -122,15 +145,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   const handleModify = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-
-    // Validate non-zero amounts if they're being changed
-    if (
-      (newMakerAmount !== undefined && newMakerAmount === 0) ||
-      (newTakerAmount !== undefined && newTakerAmount === 0)
-    ) {
-      console.error('Maker and taker amounts cannot be zero');
-      return;
-    }
 
     try {
       // Handle taker change if needed
@@ -146,33 +160,60 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       }
 
       // Handle amount changes if needed
-      const amountsChanged =
-        (newMakerAmount !== undefined &&
-          newMakerAmount !== order.makerAmount.toNumber()) ||
-        (newTakerAmount !== undefined &&
-          newTakerAmount !== order.takerAmount.toNumber());
+      if (newMakerAmount !== undefined || newTakerAmount !== undefined) {
+        const makerToken = TOKENS.find((t) => t.mint.equals(order.makerToken));
+        const takerToken = TOKENS.find((t) => t.mint.equals(order.takerToken));
 
-      if (amountsChanged) {
-        const newMA = newMakerAmount
-          ? new BN(newMakerAmount)
-          : new BN(order.makerAmount.toString());
-        const newTA = newTakerAmount
-          ? new BN(newTakerAmount)
-          : new BN(order.takerAmount.toString());
+        if (!makerToken || !takerToken) {
+          throw new Error('Token information not found');
+        }
 
-        await changeOrderAmounts({
-          order: order.id,
-          escrowTokenAccount: order.id,
-          makerTokenAccount: publicKey,
-          mint: order.makerTokenMint,
-          newMakerAmount: newMA,
-          newTakerAmount: newTA,
-        });
+        const makerMultiplier = Math.pow(10, makerToken.decimals!);
+        const takerMultiplier = Math.pow(10, takerToken.decimals!);
+
+        // Derive necessary token accounts
+        const escrowTokenAccount = getAssociatedTokenAddressSync(
+          order.makerToken,
+          order.id,
+          true
+        );
+
+        const makerTokenAccount = getAssociatedTokenAddressSync(
+          order.makerToken,
+          publicKey
+        );
+
+        // Convert decimal inputs to smallest unit integers
+        const newMA =
+          newMakerAmount !== undefined
+            ? new BN(Math.round(newMakerAmount * makerMultiplier))
+            : new BN(order.makerAmount.toString());
+
+        const newTA =
+          newTakerAmount !== undefined
+            ? new BN(Math.round(newTakerAmount * takerMultiplier))
+            : new BN(order.takerAmount.toString());
+
+        // Only proceed if amounts have actually changed
+        const currentMA = new BN(order.makerAmount.toString());
+        const currentTA = new BN(order.takerAmount.toString());
+
+        if (!newMA.eq(currentMA) || !newTA.eq(currentTA)) {
+          await changeOrderAmounts({
+            order: order.id,
+            escrowTokenAccount,
+            makerTokenAccount,
+            mint: order.makerToken,
+            newMakerAmount: newMA,
+            newTakerAmount: newTA,
+          });
+        }
       }
 
       navigate('/requests');
     } catch (error) {
       console.error('Error modifying order:', error);
+      throw error;
     }
   };
 
@@ -199,7 +240,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             onClick={handleSwap}
             disabled={loading || disabled}
           >
-            {loading ? 'Processing...' : 'Accept Swap'}
+            {loading ? 'Processing...' : 'Swap'}
           </Button>
         </div>
       );

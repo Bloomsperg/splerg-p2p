@@ -34,8 +34,8 @@ export const SwapModal: React.FC<SwapModalProps> = ({
           <div className="py-4">
             <div className="flex items-center justify-between mb-4">
               <TokenPair
-                makerMint={order.makerTokenMint}
-                takerMint={order.takerTokenMint}
+                makerMint={order.makerToken}
+                takerMint={order.takerToken}
                 makerAmount={order.makerAmount.toString()}
                 takerAmount={order.takerAmount.toString()}
               />
@@ -51,8 +51,8 @@ export const SwapModal: React.FC<SwapModalProps> = ({
           <div className="py-4">
             <div className="flex items-center justify-between mb-4">
               <TokenPair
-                makerMint={order.makerTokenMint}
-                takerMint={order.takerTokenMint}
+                makerMint={order.makerToken}
+                takerMint={order.takerToken}
                 makerAmount={order.makerAmount.toString()}
                 takerAmount={order.takerAmount.toString()}
               />
@@ -77,8 +77,8 @@ export const SwapModal: React.FC<SwapModalProps> = ({
           <div className="py-4">
             <div className="flex items-center justify-between mb-4">
               <TokenPair
-                makerMint={order.makerTokenMint}
-                takerMint={order.takerTokenMint}
+                makerMint={order.makerToken}
+                takerMint={order.takerToken}
                 makerAmount={order.makerAmount.toString()}
                 takerAmount={order.takerAmount.toString()}
               />
