@@ -15,6 +15,11 @@ export const InboxTable: React.FC<OrderTableProps> = ({ orders = [] }) => {
       </div>
     );
 
+  if (!orders?.length)
+    return (
+      <EmptyState message="No active orders or offers found. Go to the swap page to create one." />
+    );
+
   const inboxTabs = [
     {
       id: 'myOrders',
@@ -37,7 +42,5 @@ export const UserView = () => {
   const { userOrders, userLoading } = useProgramContext();
 
   if (userLoading) return <LoadingState />;
-  // if (!userOrders?.length) return <EmptyState message="No active orders or offers found. Go to the swap page to create one." />;
-
   return <InboxTable orders={userOrders} />;
 };
