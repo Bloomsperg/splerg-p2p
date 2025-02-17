@@ -19,7 +19,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@': path.resolve(__dirname, './src'),
       'react-router-dom': path.resolve('./node_modules/react-router-dom'),
     },
   },
+  build: {
+    sourcemap: true, // This will help us debug if there are issues
+    outDir: 'dist',
+    assetsDir: 'assets',
+  }
 })
