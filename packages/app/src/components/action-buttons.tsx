@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Button, CancelButton } from './ui/buttons';
@@ -11,6 +11,7 @@ import { getOrderPDA, getTreasuryPDA } from '../utils';
 import { useProgramContext } from '../context/program-context';
 import { TOKENS } from '../utils/tokens';
 import { Order } from '../model';
+import { useToast } from '../context/toast';
 
 interface ActionButtonsProps {
   context: string;
@@ -39,7 +40,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     loading,
   } = useOrderMutations();
   const navigate = useNavigate();
-  const { getBalance } = useProgramContext();
+  const { getBalance, removeOrder, addOrder, updateOrder } =
+    useProgramContext();
+
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    showToast(loading);
+  }, [loading, showToast]);
 
   if (!publicKey) {
     return <WalletMultiButton />;
@@ -97,11 +105,17 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       makerMint: order.makerToken,
       takerMint: order.takerToken,
     });
+
+    removeOrder(order.id);
+    navigate('/trades');
   };
 
   const handleCancel = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     await closeOrder({ order: order.id });
+
+    removeOrder(order.id);
+    navigate('/requests');
   };
 
   const handleCreate = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -141,6 +155,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       makerAmount: new BN(order.makerAmount.toString()),
       takerAmount: new BN(order.takerAmount.toString()),
     });
+
+    addOrder(order);
   };
 
   const handleModify = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -157,6 +173,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           order: order.id,
           newTaker: new PublicKey(newTakerPubkey),
         });
+
+        updateOrder(order.id, { taker: new PublicKey(newTakerPubkey) });
       }
 
       // Handle amount changes if needed
@@ -206,6 +224,11 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             mint: order.makerToken,
             newMakerAmount: newMA,
             newTakerAmount: newTA,
+          });
+
+          updateOrder(order.id, {
+            makerAmount: newMA,
+            takerAmount: newTA,
           });
         }
       }

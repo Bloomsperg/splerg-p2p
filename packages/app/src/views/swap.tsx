@@ -82,8 +82,8 @@ export const Swap: React.FC = () => {
             label="buying"
           />
 
-          <div className="w-full mt-4 mx-auto">
-            {!order && <WalletMultiButton />}
+          <div className="w-full mt-4 mx-auto flex justify-center">
+            {!order && <WalletMultiButton className="" />}
             {order && (
               <ActionButtons
                 context="create"

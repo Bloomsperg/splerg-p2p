@@ -17,11 +17,12 @@ export const useSendAndConfirm = () => {
   ): Promise<string> => {
     if (!publicKey || !signTransaction) throw new Error('Wallet not connected');
 
-    setLoading(true);
     setError(null);
+    let signature = '';
 
     try {
-      const { blockhash } = await connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash();
       const message = new TransactionMessage({
         payerKey: publicKey,
         recentBlockhash: blockhash,
@@ -30,10 +31,28 @@ export const useSendAndConfirm = () => {
 
       const transaction = new VersionedTransaction(message);
       const signedTx = await signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(
-        signedTx.serialize()
-      );
-      await connection.confirmTransaction(signature);
+
+      signature = await connection.sendRawTransaction(signedTx.serialize());
+
+      setLoading(true);
+
+      try {
+        const confirmationPromise = connection.confirmTransaction(
+          {
+            signature,
+            blockhash,
+            lastValidBlockHeight,
+          },
+          'confirmed'
+        );
+
+        await Promise.race([
+          confirmationPromise,
+          new Promise((resolve) => setTimeout(resolve, 5000)),
+        ]);
+      } catch (confirmError) {
+        console.warn('Confirmation error:', confirmError);
+      }
 
       return signature;
     } catch (err) {
@@ -43,6 +62,8 @@ export const useSendAndConfirm = () => {
       throw err;
     } finally {
       setLoading(false);
+      // Force a small delay after setting loading false
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   };
 

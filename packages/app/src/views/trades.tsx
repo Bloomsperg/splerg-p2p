@@ -21,6 +21,10 @@ export const TradesTable: React.FC<OrderTableProps> = ({ orders = [] }) => {
     }
   }, [publicKey, orders]);
 
+  if (!filteredOrders?.length)
+    return (
+      <EmptyState message="Looks like there's no eligible trades yet. Go to the swap page to create one." />
+    );
   return <OrderTable orders={filteredOrders} modalContext="trades" />;
 };
 
@@ -28,7 +32,5 @@ export const TradesView = () => {
   const { orders, loading } = useProgramContext();
 
   if (loading) return <LoadingState />;
-  if (!orders?.length) return <EmptyState message="No orders found" />;
-
   return <TradesTable orders={orders} />;
 };

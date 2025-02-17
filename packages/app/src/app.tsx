@@ -11,6 +11,7 @@ import { Navbar } from './components/navbar';
 import { Dashboard } from './components/dashboard';
 import { ProgramProvider } from './context/program-context';
 import { ModalProvider } from './context/modal-context';
+import { ToastProvider } from './context/toast';
 
 function App() {
   const endpoint = import.meta.env.VITE_SOLANA_RPC_ENDPOINT;
@@ -26,12 +27,14 @@ function App() {
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <ProgramProvider>
-              <ModalProvider>
-                <div className="flex flex-col min-h-screen">
-                  <Navbar />
-                  <Dashboard />
-                </div>
-              </ModalProvider>
+              <ToastProvider>
+                <ModalProvider>
+                  <div className="flex flex-col min-h-screen">
+                    <Navbar />
+                    <Dashboard />
+                  </div>
+                </ModalProvider>
+              </ToastProvider>
             </ProgramProvider>
           </WalletModalProvider>
         </WalletProvider>

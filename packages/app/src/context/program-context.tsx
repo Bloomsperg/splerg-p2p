@@ -29,6 +29,8 @@ interface ProgramState {
 interface ProgramMutations {
   fetchOrders: (owner?: PublicKey) => Promise<void>;
   addOrder: (order: Order) => Promise<void>;
+  removeOrder: (orderId: PublicKey) => void;
+  updateOrder: (orderId: PublicKey, updates: Partial<Order>) => void;
   fetchTokenBalances: () => Promise<void>;
   getBalance: (mint: PublicKey) => number | undefined;
   fetchConnection: () => Connection | null;
@@ -102,10 +104,7 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         setState((prev) => ({
           ...prev,
-          orders: [...prev.orders, order],
-          userOrders: order.maker.equals(publicKey!)
-            ? [...prev.userOrders, order]
-            : prev.userOrders,
+          userOrders: [...prev.userOrders, order],
         }));
       } catch (error) {
         console.error('Failed to add order:', error);
@@ -162,6 +161,32 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
     [state.tokenBalances]
   );
 
+  const removeOrder = useCallback((orderId: PublicKey) => {
+    setState((prev) => ({
+      ...prev,
+      orders: prev.orders.filter((order) => !order.id.equals(orderId)),
+      userOrders: prev.userOrders.filter((order) => !order.id.equals(orderId)),
+    }));
+  }, []);
+
+  const updateOrder = useCallback(
+    (orderId: PublicKey, updates: Partial<Order>) => {
+      setState((prev) => {
+        const updateOrderInList = (orderList: Order[]) =>
+          orderList.map((order) =>
+            order.id.equals(orderId) ? { ...order, ...updates } : order
+          );
+
+        return {
+          ...prev,
+          orders: updateOrderInList(prev.orders),
+          userOrders: updateOrderInList(prev.userOrders),
+        };
+      });
+    },
+    []
+  );
+
   useEffect(() => {
     const conn = fetchConnection();
     setState((prev) => ({ ...prev, conn }));
@@ -184,6 +209,8 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
     ...state,
     fetchOrders,
     addOrder,
+    removeOrder,
+    updateOrder,
     fetchTokenBalances,
     getBalance,
     fetchConnection,
