@@ -41,7 +41,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     loading,
   } = useOrderMutations();
   const navigate = useNavigate();
-  const { getBalance, removeOrder, addOrder, updateOrder } =
+  const { getBalance, removeOrder, addOrder, updateOrder, fetchTokenBalances } =
     useProgramContext();
 
   const { showToast } = useToast();
@@ -77,7 +77,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     // Order's ATA for maker's token (escrow account)
     const orderMakerAta = getAssociatedTokenAddressSync(
       order.makerToken,
-      order.id,
+      order.address,
       true
     );
 
@@ -95,7 +95,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     );
 
     await completeSwap({
-      order: order.id,
+      order: order.address,
       makerTakerAta,
       takerAta,
       takerMakerAta,
@@ -107,15 +107,15 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       takerMint: order.takerToken,
     });
 
-    removeOrder(order.id);
+    removeOrder(order.address);
     navigate('/trades');
   };
 
   const handleCancel = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    await closeOrder({ order: order.id });
+    await closeOrder({ order: order.address });
 
-    removeOrder(order.id);
+    removeOrder(order.address);
     navigate('/requests');
   };
 
@@ -123,8 +123,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     e.preventDefault();
 
     const orderPDA = getOrderPDA(
-      publicKey,
       order.id,
+      publicKey,
       order.makerToken,
       order.takerToken
     );
@@ -152,8 +152,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       );
     }
 
+    console.log(orderPDA.pda.toBase58())
+    console.log(order.address.toBase58())
+
+
     await initializeOrder({
-      order: order.id,
+      order: order.address,
+      id: order.id,
       makerAta,
       pdaMakerAta,
       makerMint: order.makerToken,
@@ -163,6 +168,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     });
 
     addOrder(order);
+    fetchTokenBalances();
   };
 
   const handleModify = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -176,11 +182,11 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         newTakerPubkey !== PublicKey.default.toBase58()
       ) {
         await changeTaker({
-          order: order.id,
+          order: order.address,
           newTaker: new PublicKey(newTakerPubkey),
         });
 
-        updateOrder(order.id, { taker: new PublicKey(newTakerPubkey) });
+        updateOrder(order.address, { taker: new PublicKey(newTakerPubkey) });
       }
 
       // Handle amount changes if needed
@@ -198,7 +204,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         // Derive necessary token accounts
         const escrowTokenAccount = getAssociatedTokenAddressSync(
           order.makerToken,
-          order.id,
+          order.address,
           true
         );
 
@@ -224,7 +230,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
         if (!newMA.eq(currentMA) || !newTA.eq(currentTA)) {
           await changeOrderAmounts({
-            order: order.id,
+            order: order.address,
             escrowTokenAccount,
             makerTokenAccount,
             mint: order.makerToken,
@@ -232,10 +238,12 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             newTakerAmount: newTA,
           });
 
-          updateOrder(order.id, {
+          updateOrder(order.address, {
             makerAmount: newMA,
             takerAmount: newTA,
           });
+
+          fetchTokenBalances();
         }
       }
 
@@ -249,7 +257,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   switch (context) {
     case 'create':
       return (
-        <div className="card-actions justify-end mt-4">
+        <div className="card-actions justify-end mt-4 w-full">
           <Button
             className="bg-sunset w-full rounded"
             onClick={handleCreate}

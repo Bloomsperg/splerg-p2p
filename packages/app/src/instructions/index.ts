@@ -19,6 +19,7 @@ const COMPLETE_SWAP_IX_DISCRIMINATOR = Buffer.from([6]);
 const CLOSE_ORDER_IX_DISCRIMINATOR = Buffer.from([7]);
 
 interface InitializeOrderAccounts {
+  id: PublicKey,
   maker: PublicKey;
   order: PublicKey;
   makerAta: PublicKey;
@@ -52,6 +53,7 @@ export function createInitializeOrderInstruction(
     { pubkey: accounts.order, isWritable: true, isSigner: false },
     { pubkey: accounts.makerAta, isWritable: true, isSigner: false },
     { pubkey: accounts.pdaMakerAta, isWritable: true, isSigner: false },
+    { pubkey: accounts.id, isWritable: false, isSigner: false },
     { pubkey: accounts.makerMint, isWritable: false, isSigner: false },
     { pubkey: accounts.takerMint, isWritable: false, isSigner: false },
     {

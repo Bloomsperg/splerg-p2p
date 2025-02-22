@@ -164,8 +164,8 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
   const removeOrder = useCallback((orderId: PublicKey) => {
     setState((prev) => ({
       ...prev,
-      orders: prev.orders.filter((order) => !order.id.equals(orderId)),
-      userOrders: prev.userOrders.filter((order) => !order.id.equals(orderId)),
+      orders: prev.orders.filter((order) => !order.address.equals(orderId)),
+      userOrders: prev.userOrders.filter((order) => !order.address.equals(orderId)),
     }));
   }, []);
 
@@ -174,7 +174,7 @@ export const ProgramProvider: React.FC<{ children: React.ReactNode }> = ({
       setState((prev) => {
         const updateOrderInList = (orderList: Order[]) =>
           orderList.map((order) =>
-            order.id.equals(orderId) ? { ...order, ...updates } : order
+            order.address.equals(orderId) ? { ...order, ...updates } : order
           );
 
         return {

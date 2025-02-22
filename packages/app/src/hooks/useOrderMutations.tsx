@@ -16,6 +16,7 @@ export const useOrderMutations = () => {
 
   const initializeOrder = async (params: {
     order: PublicKey;
+    id: PublicKey, 
     makerAta: PublicKey;
     pdaMakerAta: PublicKey;
     makerMint: PublicKey;
@@ -51,6 +52,7 @@ export const useOrderMutations = () => {
     // Create and add the initialize order instruction
     const initOrderIx = createInitializeOrderInstruction(
       {
+        id: params.id,
         maker: publicKey,
         order: params.order,
         makerAta: params.makerAta,

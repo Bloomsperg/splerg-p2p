@@ -31,7 +31,7 @@ export const SwapButton: React.FC<{
   disabled?: boolean;
   loading?: boolean;
 }> = ({ onClick, disabled, loading }) => (
-  <div className="card-actions justify-end mt-4">
+  <div className="card-actions justify-end mt-4 w-full">
     <Button
       className="bg-sunset w-full rounded"
       onClick={onClick}
