@@ -2,8 +2,13 @@ use std::path::PathBuf;
 
 use litesvm::LiteSVM;
 use solana_sdk::{
-    instruction::AccountMeta, pubkey::Pubkey, rent::sysvar, signature::Keypair, signer::Signer,
-    system_program, transaction::Transaction,
+    instruction::AccountMeta,
+    pubkey::Pubkey,
+    rent::sysvar,
+    signature::Keypair,
+    signer::{keypair::Keypair as KP, Signer},
+    system_program,
+    transaction::Transaction,
 };
 use spl_associated_token_account::get_associated_token_address;
 
@@ -29,6 +34,7 @@ pub struct TestSetup {
     pub order_pda: Pubkey,
     pub maker_token_ata: Pubkey,
     pub order_maker_token_ata: Pubkey,
+    pub order_id: Pubkey,
 }
 
 impl Default for TestSetup {
@@ -64,10 +70,13 @@ impl TestSetup {
         )
         .unwrap();
 
+        let id = KP::new();
+
         // Calculate PDAs and ATAs
         let (order_pda, _) = Pubkey::find_program_address(
             &[
                 b"order",
+                id.pubkey().as_ref(),
                 payer.pubkey().as_ref(),
                 maker_mint_setup.mint.pubkey().as_ref(),
                 taker_mint_setup.mint.pubkey().as_ref(),
@@ -106,6 +115,7 @@ impl TestSetup {
             order_pda,
             maker_token_ata,
             order_maker_token_ata,
+            order_id: id.pubkey(),
         }
     }
 
@@ -148,6 +158,7 @@ impl TestSetup {
                 AccountMeta::new(self.order_pda, false),
                 AccountMeta::new(self.maker_token_ata, false),
                 AccountMeta::new(self.order_maker_token_ata, false),
+                AccountMeta::new_readonly(self.order_id, false),
                 AccountMeta::new_readonly(self.maker_mint.pubkey(), false),
                 AccountMeta::new_readonly(self.taker_mint.pubkey(), false),
                 AccountMeta::new_readonly(system_program::id(), false),

@@ -6,6 +6,7 @@ use solana_program::pubkey::Pubkey;
 pub struct SwapOrder {
     pub maker: Pubkey,
     pub taker: Pubkey,
+    pub id: Pubkey,
     pub maker_token_mint: Pubkey,
     pub taker_token_mint: Pubkey,
     pub maker_amount: u64,
@@ -16,6 +17,7 @@ pub struct SwapOrder {
 impl SwapOrder {
     pub const LEN: usize = 32 + // maker
         32 + // taker
+        32 + // id
         32 + // maker_token_mint
         32 + // taker_token_mint
         8 + // maker_amount
@@ -23,6 +25,7 @@ impl SwapOrder {
         1; // bump
 
     pub fn new(
+        id: Pubkey,
         maker: Pubkey,
         maker_token_mint: Pubkey,
         taker_token_mint: Pubkey,
@@ -33,6 +36,7 @@ impl SwapOrder {
         Self {
             maker,
             taker: Pubkey::default(),
+            id,
             maker_token_mint,
             taker_token_mint,
             maker_amount,

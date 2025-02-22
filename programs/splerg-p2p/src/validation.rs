@@ -127,6 +127,7 @@ pub fn validate_rent_sysvar(rent: &Pubkey) -> ProgramResult {
 /// Get order PDA
 pub fn get_order_pda(
     program_id: &Pubkey,
+    order_id: &Pubkey,
     maker: &Pubkey,
     maker_mint: &Pubkey,
     taker_mint: &Pubkey,
@@ -134,6 +135,7 @@ pub fn get_order_pda(
     let (pda, bump) = Pubkey::find_program_address(
         &[
             b"order",
+            order_id.as_ref(),
             maker.as_ref(),
             maker_mint.as_ref(),
             taker_mint.as_ref(),
@@ -151,6 +153,7 @@ pub fn validate_order_pda(
     let order = SwapOrder::try_from_slice(&account_info.data.borrow())?;
     let (pda, bump) = get_order_pda(
         program_id,
+        &order.id,
         &order.maker,
         &order.maker_token_mint,
         &order.taker_token_mint,

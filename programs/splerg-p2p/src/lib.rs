@@ -16,7 +16,7 @@ pub mod splerg_p2p {
         pubkey::Pubkey,
     };
 
-    declare_id!("GKTd9AGFpPGNKK28ncHeGGuT7rBJLzPxNjCUPKn8Yik8");
+    declare_id!("3jWWQaiQDBycy5VrSREfugrax1TTg1fmDHm6adFES52T");
 
     #[cfg(not(feature = "no-entrypoint"))]
     entrypoint!(process_instruction);

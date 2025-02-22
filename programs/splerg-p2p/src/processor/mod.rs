@@ -230,6 +230,7 @@ impl Processor {
         let order_account_info = next_account_info(account_info_iter)?;
         let maker_mint_ata = next_account_info(account_info_iter)?;
         let order_maker_ata = next_account_info(account_info_iter)?;
+        let order_id = next_account_info(account_info_iter)?;
         let maker_mint_info = next_account_info(account_info_iter)?;
         let taker_mint_info = next_account_info(account_info_iter)?;
         let system_program_info = next_account_info(account_info_iter)?;
@@ -249,6 +250,7 @@ impl Processor {
 
         let (_, bump) = get_order_pda(
             program_id,
+            order_id.key,
             maker_info.key,
             maker_mint_info.key,
             taker_mint_info.key,
@@ -273,6 +275,7 @@ impl Processor {
             ],
             &[&[
                 b"order",
+                order_id.key.as_ref(),
                 maker_info.key.as_ref(),
                 maker_mint_info.key.as_ref(),
                 taker_mint_info.key.as_ref(),
@@ -314,6 +317,7 @@ impl Processor {
         )?;
 
         let order = SwapOrder::new(
+            *order_id.key,
             *maker_info.key,
             *maker_mint_info.key,
             *taker_mint_info.key,
@@ -428,6 +432,7 @@ impl Processor {
                         ],
                         &[&[
                             b"order",
+                            &order.id.to_bytes(),
                             maker_info.key.as_ref(),
                             &order.maker_token_mint.to_bytes(),
                             &order.taker_token_mint.to_bytes(),
@@ -454,6 +459,7 @@ impl Processor {
                         ],
                         &[&[
                             b"order",
+                            &order.id.to_bytes(),
                             maker_info.key.as_ref(),
                             &order.maker_token_mint.to_bytes(),
                             &order.taker_token_mint.to_bytes(),
@@ -603,6 +609,7 @@ impl Processor {
                 ],
                 &[&[
                     b"order",
+                    &order.id.to_bytes(),
                     &order.maker.to_bytes(),
                     &order.maker_token_mint.to_bytes(),
                     &order.taker_token_mint.to_bytes(),
@@ -629,6 +636,7 @@ impl Processor {
                 ],
                 &[&[
                     b"order",
+                    &order.id.to_bytes(),
                     &order.maker.to_bytes(),
                     &order.maker_token_mint.to_bytes(),
                     &order.taker_token_mint.to_bytes(),
@@ -656,6 +664,7 @@ impl Processor {
                     ],
                     &[&[
                         b"order",
+                        &order.id.to_bytes(),
                         &order.maker.to_bytes(),
                         &order.maker_token_mint.to_bytes(),
                         &order.taker_token_mint.to_bytes(),
@@ -682,6 +691,7 @@ impl Processor {
                     ],
                     &[&[
                         b"order",
+                        &order.id.to_bytes(),
                         &order.maker.to_bytes(),
                         &order.maker_token_mint.to_bytes(),
                         &order.taker_token_mint.to_bytes(),
@@ -710,6 +720,7 @@ impl Processor {
                     ],
                     &[&[
                         b"order",
+                        &order.id.to_bytes(),
                         &order.maker.to_bytes(),
                         &order.maker_token_mint.to_bytes(),
                         &order.taker_token_mint.to_bytes(),
@@ -736,6 +747,7 @@ impl Processor {
                     ],
                     &[&[
                         b"order",
+                        &order.id.to_bytes(),
                         &order.maker.to_bytes(),
                         &order.maker_token_mint.to_bytes(),
                         &order.taker_token_mint.to_bytes(),

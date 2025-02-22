@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 
 export interface Order {
+  address: PublicKey;
   id: PublicKey;
   maker: PublicKey;
   taker: PublicKey;

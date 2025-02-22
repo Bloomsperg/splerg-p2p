@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 
 export const PROGRAM_ID = new PublicKey(
-  'GKTd9AGFpPGNKK28ncHeGGuT7rBJLzPxNjCUPKn8Yik8'
+  '3jWWQaiQDBycy5VrSREfugrax1TTg1fmDHm6adFES52T'
 );
 
 export const formatPubkey = (pubkey: string): string => {
@@ -48,24 +48,6 @@ export function formatTokenAmount(
   const rounded = Math.floor(scaled * 10) / 10;
   return `${rounded}${suffixes[tier]}`;
 }
-
-export const getOrderPDA = (
-  maker: PublicKey,
-  makerTokenMint: PublicKey,
-  takerTokenMint: PublicKey
-): { pda: PublicKey; bump: number } => {
-  const [pda, bump] = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('order'),
-      maker.toBytes(),
-      makerTokenMint.toBytes(),
-      takerTokenMint.toBytes(),
-    ],
-    PROGRAM_ID
-  );
-
-  return { pda, bump };
-};
 
 export const getTreasuryPDA = (): { pda: PublicKey; bump: number } => {
   const [pda, bump] = PublicKey.findProgramAddressSync(

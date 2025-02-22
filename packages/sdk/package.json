@@ -7,9 +7,9 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "init-treasury": "ts-node src/scripts/index.ts",
-    "init-mint": "ts-node src/scripts/mint.ts",
-    "init-mint-2022": "ts-node src/scripts/mint.ts",
+    "init-treasury": "tsx src/scripts/treasury.ts",
+    "init-mint": "tsx src/scripts/mint.ts",
+    "init-mint-2022": "tsx src/scripts/mint.ts",
     "build": "tsc",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",

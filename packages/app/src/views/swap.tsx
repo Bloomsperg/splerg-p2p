@@ -11,8 +11,8 @@ import { TokenInput } from '../components/token/token-input';
 import { useModal } from '../context/modal-context';
 import { SwapDirectionButton } from '../components/ui/buttons';
 import { ActionButtons } from '../components/action-buttons';
-import { getOrderPDA } from '../utils';
-import { PublicKey } from '@solana/web3.js';
+import { getOrderPDA } from '../utils/orders';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { Order } from '../model';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
@@ -44,12 +44,14 @@ export const Swap: React.FC = () => {
 
     const makerMint = getTokenMintFromSymbol(fromToken);
     const takerMint = getTokenMintFromSymbol(toToken);
-    const { pda, bump } = getOrderPDA(publicKey, makerMint, takerMint);
+    const id = Keypair.generate().publicKey;
+    const { pda, bump } = getOrderPDA(id, publicKey, makerMint, takerMint);
     const makerDecimals = getTokenDecimalsFromMint(makerMint);
     const takerDecimals = getTokenDecimalsFromMint(takerMint);
 
     setOrder({
-      id: pda,
+      address: pda,
+      id,
       maker: publicKey,
       taker: PublicKey.default,
       makerToken: makerMint,

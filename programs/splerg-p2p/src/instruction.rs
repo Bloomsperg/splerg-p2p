@@ -47,12 +47,13 @@ pub enum SwapInstruction {
         name = "pda_maker_ata",
         desc = "PDA maker mint ATA (initialized)"
     )]
-    #[account(4, name = "maker_mint", desc = "Maker token mint")]
-    #[account(5, name = "taker_mint", desc = "Taker token mint")]
-    #[account(6, name = "system_program", desc = "System program")]
-    #[account(7, name = "rent", desc = "Rent sysvar")]
+    #[account(4, name = "id", desc = "order id")]
+    #[account(5, name = "maker_mint", desc = "Maker token mint")]
+    #[account(6, name = "taker_mint", desc = "Taker token mint")]
+    #[account(7, name = "system_program", desc = "System program")]
+    #[account(8, name = "rent", desc = "Rent sysvar")]
     #[account(
-        8,
+        9,
         name = "token_program",
         desc = "Token Program (optional Token 2022)"
     )]

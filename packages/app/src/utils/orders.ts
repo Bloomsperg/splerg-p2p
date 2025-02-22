@@ -7,16 +7,18 @@ import BN from 'bn.js';
 import { PROGRAM_ID } from '.';
 import { Order } from '../model';
 
-const SWAP_ORDER_SIZE = 32 + 32 + 32 + 32 + 8 + 8 + 1; // 145 bytes total
+const SWAP_ORDER_SIZE = 32 + 32 + 32 + 32 + 32 + 8 + 8 + 1; // 177 bytes total
 
-function deserializeOrder(id: PublicKey, data: Buffer): Order {
+function deserializeOrder(address: PublicKey, data: Buffer): Order {
   let offset = 0;
 
-  // Read each field from the buffer
   const maker = new PublicKey(data.slice(offset, offset + 32));
   offset += 32;
 
   const taker = new PublicKey(data.slice(offset, offset + 32));
+  offset += 32;
+
+  const id = new PublicKey(data.slice(offset, offset + 32));
   offset += 32;
 
   const makerToken = new PublicKey(data.slice(offset, offset + 32));
@@ -34,6 +36,7 @@ function deserializeOrder(id: PublicKey, data: Buffer): Order {
   const bump = data[offset];
 
   return {
+    address,
     id,
     maker,
     taker,
@@ -78,3 +81,23 @@ export async function fetchProgramAccounts(
     throw error;
   }
 }
+
+export const getOrderPDA = (
+  id: PublicKey,
+  maker: PublicKey,
+  makerTokenMint: PublicKey,
+  takerTokenMint: PublicKey
+): { pda: PublicKey; bump: number } => {
+  const [pda, bump] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from('order'),
+      id.toBytes(),
+      maker.toBytes(),
+      makerTokenMint.toBytes(),
+      takerTokenMint.toBytes(),
+    ],
+    PROGRAM_ID
+  );
+
+  return { pda, bump };
+};

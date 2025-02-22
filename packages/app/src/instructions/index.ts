@@ -10,7 +10,7 @@ import BN from 'bn.js';
 
 // Constants
 const PROGRAM_ID = new PublicKey(
-  'GKTd9AGFpPGNKK28ncHeGGuT7rBJLzPxNjCUPKn8Yik8'
+  '3jWWQaiQDBycy5VrSREfugrax1TTg1fmDHm6adFES52T'
 );
 const INITIALIZE_IX_DISCRIMINATOR = Buffer.from([3]);
 const CHANGE_ORDER_AMOUNTS_IX_DISCRIMINATOR = Buffer.from([4]);

@@ -7,11 +7,12 @@ import { PublicKey } from '@solana/web3.js';
 import { useNavigate } from 'react-router-dom';
 import BN from 'bn.js';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
-import { getOrderPDA, getTreasuryPDA } from '../utils';
+import { getOrderPDA } from '../utils/orders';
 import { useProgramContext } from '../context/program-context';
 import { TOKENS } from '../utils/tokens';
 import { Order } from '../model';
 import { useToast } from '../context/toast';
+import { getTreasuryPDA } from '../utils';
 
 interface ActionButtonsProps {
   context: string;
@@ -121,7 +122,12 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const handleCreate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    const orderPDA = getOrderPDA(publicKey, order.makerToken, order.takerToken);
+    const orderPDA = getOrderPDA(
+      publicKey,
+      order.id,
+      order.makerToken,
+      order.takerToken
+    );
 
     const makerAta = getAssociatedTokenAddressSync(order.makerToken, publicKey);
     const pdaMakerAta = getAssociatedTokenAddressSync(
