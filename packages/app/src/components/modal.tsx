@@ -24,7 +24,7 @@ export const SwapModal: React.FC<SwapModalProps> = ({
   const handleModifyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     closeModal(`swap_modal_${index}` as ModalType);
-    navigate(`/modify/${order.address}`);
+    navigate(`/modify/${order.address.toBase58()}`);
   };
 
   const renderContextContent = () => {

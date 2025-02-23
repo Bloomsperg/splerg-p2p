@@ -60,11 +60,3 @@ export const CancelButton: React.FC<{
     <CancelIcon />
   </Button>
 );
-
-export const ModifyButton: React.FC<{
-  onClick: () => void;
-}> = ({ onClick }) => (
-  <Button className="btn-ghost border-2 border-sunset/90" onClick={onClick}>
-    Modify
-  </Button>
-);

@@ -12,7 +12,7 @@ export const ModifyView: React.FC = () => {
   const { userOrders = [], orders = [] } = useProgramContext();
 
   const order = [...userOrders, ...orders].find(
-    (o) => o.id.toBase58() === orderId
+    (o) => o.address.toBase58() === orderId
   );
 
   const [newTakerPubkey, setNewTakerPubkey] = useState('');
