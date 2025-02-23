@@ -179,7 +179,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       if (
         newTakerPubkey &&
         newTakerPubkey !== order.taker.toString() &&
-        newTakerPubkey !== PublicKey.default.toBase58()
+        newTakerPubkey !== PublicKey.default.toBase58() &&
+        newTakerPubkey !== ''
       ) {
         await changeTaker({
           order: order.address,
@@ -189,7 +190,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         updateOrder(order.address, { taker: new PublicKey(newTakerPubkey) });
       }
 
-      // Handle amount changes if needed
       if (newMakerAmount !== undefined || newTakerAmount !== undefined) {
         const makerToken = TOKENS.find((t) => t.mint.equals(order.makerToken));
         const takerToken = TOKENS.find((t) => t.mint.equals(order.takerToken));

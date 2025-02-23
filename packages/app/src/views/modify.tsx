@@ -16,8 +16,8 @@ export const ModifyView: React.FC = () => {
   );
 
   const [newTakerPubkey, setNewTakerPubkey] = useState('');
-  const [newMakerAmount, setNewMakerAmount] = useState(0.0);
-  const [newTakerAmount, setNewTakerAmount] = useState(0.0);
+  const [newMakerAmount, setNewMakerAmount] = useState<number | null>(null);
+  const [newTakerAmount, setNewTakerAmount] = useState<number | null>(null);
 
   useEffect(() => {
     if (order) {
@@ -51,7 +51,7 @@ export const ModifyView: React.FC = () => {
                 <span>
                   Recipient:{' '}
                   {order.taker.toBase58() == PublicKey.default.toBase58()
-                    ? 'public'
+                    ? 'public, currently anyone can take this trade.'
                     : formatPubkey(order.taker.toString())}
                 </span>
               </div>
@@ -73,7 +73,7 @@ export const ModifyView: React.FC = () => {
                 <TokenIcon mint={order.makerToken} />
                 <input
                   type="number"
-                  value={newMakerAmount}
+                  value={newMakerAmount ? newMakerAmount : undefined}
                   onChange={(e) => setNewMakerAmount(Number(e.target.value))}
                   className="grow"
                   placeholder="0.0"
@@ -91,7 +91,7 @@ export const ModifyView: React.FC = () => {
                 <TokenIcon mint={order.takerToken} />
                 <input
                   type="number"
-                  value={newTakerAmount}
+                  value={newTakerAmount ? newTakerAmount : undefined}
                   onChange={(e) => setNewTakerAmount(Number(e.target.value))}
                   className="grow"
                   placeholder="0.0"
@@ -105,7 +105,7 @@ export const ModifyView: React.FC = () => {
                 <div>Recipient</div>
               </div>
 
-              <label className="input input-xl w-full flex items-center gap shadow-xl bg-base-300 border-none shadow-base">
+              <label className="input input-xl w-full flex items-center gap shadow-xl bg-base-300 border-none shadow-base text-sm">
                 <input
                   type="text"
                   placeholder="new recipient"
@@ -123,8 +123,8 @@ export const ModifyView: React.FC = () => {
           <ActionButtons
             context="modify"
             order={order}
-            newMakerAmount={newMakerAmount}
-            newTakerAmount={newTakerAmount}
+            newMakerAmount={newMakerAmount ? newMakerAmount : undefined}
+            newTakerAmount={newTakerAmount ? newTakerAmount : undefined}
             newTakerPubkey={newTakerPubkey}
           />{' '}
         </div>
