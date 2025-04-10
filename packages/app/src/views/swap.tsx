@@ -17,8 +17,8 @@ import { Order } from '../model';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export const Swap: React.FC = () => {
-  const [fromToken, setFromToken] = useState('TOKA');
-  const [toToken, setToToken] = useState('TOKB');
+  const [fromToken, setFromToken] = useState('USDC');
+  const [toToken, setToToken] = useState('SPERG');
   const [fromAmount, setFromAmount] = useState('');
   const [toAmount, setToAmount] = useState('');
   const [order, setOrder] = useState<Order | null>(null);
